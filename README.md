@@ -1,6 +1,6 @@
 # Docx Reader v0.0.0
 
-This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https://svelte.dev). You can open .docx files in it. Although many features are missing, like font, color, editing, etc, it opens documents ~3x faster than word.
+This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https://svelte.dev). You can open .docx files in it. Although many features are missing, like font, color, editing, etc, it opens documents much faster than word (~3x in dev server, ~28x faster after build). This means it can open a 4 MB Kritique Masterfile in ~1 second.
 
 # Features
 
