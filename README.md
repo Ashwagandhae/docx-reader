@@ -4,9 +4,18 @@ This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https:
 
 # Features
 
-- Bold, underline, highlighting, font size
+- Bold, underline, highlight, font size
 - Outline
 - Blazingly Fast opening
+
+# Unfeatures (features it doesn't have)
+
+- Ability to edit
+- Pages
+- Zoom
+- Search
+- Font, color, highlight color
+- Multiple window support
 
 # Download
 
