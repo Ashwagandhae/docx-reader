@@ -14,7 +14,7 @@
 <style>
   p {
     overflow-wrap: break-word;
-    word-break: break-all;
+    word-break: break-word;
     margin: 0;
     padding: 1em 0;
   }

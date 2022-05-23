@@ -31,6 +31,7 @@
     border-radius: var(--border-radius);
     cursor: default;
     min-height: 1em;
+    font-size: 0.8em;
   }
   li:hover {
     background-color: var(--back-two-hover);
@@ -50,6 +51,6 @@
     color: var(--text-strong);
   }
   .big {
-    font-size: 1.2em;
+    font-size: 1.5em;
   }
 </style>

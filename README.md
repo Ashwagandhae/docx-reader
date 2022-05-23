@@ -75,7 +75,3 @@ My Vue is that [Svelte](https://svelte.dev) is more Reactive, and it's easier to
 ## Why zip?
 
 [zip](https://docs.rs/zip/latest/zip/) is the first unzipping library I found. Docx files are actually just zipped up folders of XML files, so I needed to unzip them.
-
-# Known issues
-
-- The file open dialog is slow and weird

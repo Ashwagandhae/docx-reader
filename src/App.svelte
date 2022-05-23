@@ -1,6 +1,5 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api';
-  import { open } from '@tauri-apps/api/dialog';
   import { onMount, tick } from 'svelte';
   import Doc from './Doc.svelte';
   import Outline from './Outline.svelte';
@@ -19,7 +18,8 @@
   colorThemeMediaQuery.addEventListener('change', updateColorTheme);
 
   async function chooseFile() {
-    let filepath = await open();
+    let filepath = await invoke('open_dialog');
+    if (!filepath) return;
 
     let fileResult = await invoke('load_file', { filepath });
     if (!fileResult) return;
@@ -103,7 +103,7 @@
     grid-area: outline;
   }
   :global(body) {
-    --padding: 20px;
+    --padding: 10px;
     --topbar-height: 50px;
     --gap: 0px;
     --border-radius: 10px;

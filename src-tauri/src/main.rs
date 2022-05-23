@@ -9,6 +9,7 @@ use document::Drop;
 use document::OutlineItem;
 use document::Para;
 
+use std::path::PathBuf;
 use std::sync::Mutex;
 
 use tauri::State;
@@ -29,6 +30,18 @@ fn load_file(filepath: String, paras: State<Paras>, outline_items: State<Outline
         outline_items.push(outline_item);
     }
     return true;
+}
+use tauri::api::dialog::blocking::FileDialogBuilder;
+#[tauri::command]
+async fn open_dialog() -> Result<PathBuf, bool> {
+    if let Some(filepath) = FileDialogBuilder::new()
+        .add_filter("Word Document", &["docx"])
+        .pick_file()
+    {
+        Ok(filepath)
+    } else {
+        Err(false)
+    }
 }
 
 #[tauri::command]
@@ -82,7 +95,8 @@ fn main() {
             load_file,
             get_paras,
             unload_file,
-            get_outline_items
+            get_outline_items,
+            open_dialog
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");
