@@ -155,6 +155,7 @@
     endIndex = index;
     await loadBottom();
     viewerElement.scrollTop = loaderHeight + 1;
+    await extendItemsBottom();
   }
 </script>
 

@@ -1,11 +1,13 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api';
+  import { fade } from 'svelte/transition';
   import { onMount, tick } from 'svelte';
   import Doc from './Doc.svelte';
   import Outline from './Outline.svelte';
   import Button from './Button.svelte';
   import { appWindow, WebviewWindow } from '@tauri-apps/api/window';
   import { messenger } from './stores';
+  import { listen } from '@tauri-apps/api/event';
 
   // listen for changes in system settings
 
@@ -18,9 +20,28 @@
   colorThemeMediaQuery.addEventListener('change', updateColorTheme);
 
   async function chooseFile() {
-    let filepath = await invoke('open_dialog');
+    let filepath: string = await invoke('open_dialog');
     if (!filepath) return;
-
+    readFile(filepath);
+  }
+  let droppingFile = false;
+  listen('tauri://file-drop-hover', () => {
+    console.log('among');
+    droppingFile = true;
+  });
+  listen('tauri://file-drop-cancelled', () => {
+    droppingFile = false;
+  });
+  listen('tauri://file-drop', (event) => {
+    droppingFile = false;
+    if ((event.payload as string[]).length > 0) {
+      readFile(event.payload[0]);
+    }
+  });
+  async function readFile(filepath: string) {
+    let extension = filepath.split('.').pop();
+    if (extension != 'docx') return;
+    await closeFile();
     let fileResult = await invoke('load_file', { filepath });
     if (!fileResult) return;
     doc.getLoader().teleport(0);
@@ -30,6 +51,7 @@
     let result = await invoke('unload_file');
     outline.getLoader().reset();
     doc.getLoader().reset();
+    await tick();
   }
   messenger.on('teleport', function (index) {
     doc.getLoader().teleport(index);
@@ -39,6 +61,11 @@
 </script>
 
 <main>
+  {#if droppingFile}
+    <div class="screen" transition:fade={{ duration: 200 }}>
+      <div class="message">drop file here</div>
+    </div>
+  {/if}
   <div class="grid">
     <div class="tools">
       <Button on:click={chooseFile}>Open file</Button>
@@ -60,6 +87,25 @@
     font-family: sans-serif;
     color: var(--text);
     background-color: var(--back);
+  }
+  main {
+    position: relative;
+  }
+  .screen {
+    z-index: 10000;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: hsl(0, 0%, 0%, 0.5);
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .message {
+    font-size: 1em;
+    color: var(--text);
   }
   .tools {
     width: 100vw;
