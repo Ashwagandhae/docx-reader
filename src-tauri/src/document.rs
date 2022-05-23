@@ -1,4 +1,3 @@
-extern crate minidom;
 extern crate serde;
 extern crate zip;
 
