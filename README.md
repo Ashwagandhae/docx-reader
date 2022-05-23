@@ -21,6 +21,8 @@ Not supported right now (even though Tauri is literally cross platform)
 
 ## Or build from source
 
+This will work for Macos, Windows and Linux
+
 1. [Set up Tauri dependencies](https://tauri.studio/v1/guides/getting-started/prerequisites/)
 2. Clone this repository and install packages
 
