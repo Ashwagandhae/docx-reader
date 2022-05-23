@@ -2,24 +2,25 @@
 
 This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https://svelte.dev). You can open .docx files in it. Although many features are missing, like font, color, editing, etc, it opens documents ~3x faster than word.
 
-## Features
+# Features
 
 - Bold, underline, highlighting, font size
 - Outline
+- Blazingly Fast opening
 
-## Download
+# Download
 
-### MacOS
+## MacOS
 
 1. [Click here](https://ashwagandhae.github.io/docx-reader/docx-reader.app.zip) to download a zip
 2. Unzip the zip file (I swear its not a virus)
 3. Double click the app
 
-### Windows & Linux
+## Windows & Linux
 
 Not supported right now (even though Tauri is literally cross platform)
 
-## Or build from source
+# Or build from source
 
 This will work for Macos, Windows and Linux
 
@@ -44,10 +45,28 @@ npm run tauri dev
 npm run tauri build
 ```
 
+# Dependencies explained
+
 ## Why Tauri?
 
-Tauri is basically a less developed [Electron](https://www.electronjs.org/), but with much better performance. The fact that it uses [Rust](https://www.rust-lang.org/) in the backend allows it to parse the docx files fast.
+[Tauri](https://tauri.studio) is basically a less developed [Electron](https://www.electronjs.org/), but with much better performance. The fact that it uses [Rust](https://www.rust-lang.org/) in the backend allows it to parse the docx files fast.
 
 ## Why Svelte?
 
-My point of Vue is that Svelte is more Reactive, and it's easier to Express my ideas. I can see the Angle of it being a pretty new framework, but I think it's the Next big thing, and will probably become the Backbone of web development.
+My Vue is that [Svelte](https://svelte.dev) is more Reactive, and it's easier to Express my ideas. I can see the Angle of it being a pretty new framework, but I think it's the Next big thing, and will probably become the Backbone of web development.
+
+## Why Typescript Svelte?
+
+[Typescript](https://www.typescriptlang.org/) has completely changed my life. Instead of merely typing a variable name, I now have the honor to type `let callbacks :{[key: string]: (()=>void)[]} = {}`. I'm so glad to see the helpful hints that `Element has no attribute to offsetTop`.
+
+## Why quick_xml?
+
+[quick_xml](https://docs.rs/quick-xml/latest/quick_xml/) is the fastest rust XML parsing library I could find. Instead of making a struct representation of the XML, it streams them as events. Docx files are actually just zipped up folders of XML files, you can [read more here](https://www.toptal.com/xml/an-informal-introduction-to-docx).
+
+## Why zip?
+
+[zip](https://docs.rs/zip/latest/zip/) is the first unzipping library I found. Docx files are actually just zipped up folders of XML files, so I needed to unzip them.
+
+# Known issues
+
+- The file open dialog is slow and weird
