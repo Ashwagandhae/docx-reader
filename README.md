@@ -1,6 +1,4 @@
-# Docx Reader
-
-version 0.0.0
+# Docx Reader v0.0.0
 
 This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https://svelte.dev). You can open .docx files in it. Although many features are missing, like font, color, editing, etc, it opens documents ~3x faster than word.
 
