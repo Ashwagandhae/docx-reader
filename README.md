@@ -17,7 +17,7 @@ This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https:
 - Zoom
 - Search
 - Font, color, highlight color
-- Multiple window support
+- Multi-window support
 
 # Download
 
