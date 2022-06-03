@@ -10,7 +10,7 @@ This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https:
 
 # Unfeatures
 
-### features it doesn't have
+### Features it doesn't have
 
 - Ability to edit
 - Pages
