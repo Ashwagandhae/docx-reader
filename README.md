@@ -6,9 +6,11 @@ This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https:
 
 - Bold, underline, highlight, font size
 - Outline
-- Blazingly Fast opening
+- Blazingly fast startup
 
-# Unfeatures (features it doesn't have)
+# Unfeatures
+
+### features it doesn't have
 
 - Ability to edit
 - Pages
@@ -58,15 +60,11 @@ npm run tauri build
 
 ## Why Tauri?
 
-[Tauri](https://tauri.studio) is basically a less developed [Electron](https://www.electronjs.org/), but with much better performance. The fact that it uses [Rust](https://www.rust-lang.org/) in the backend allows it to parse the docx files fast.
+[Tauri](https://tauri.studio) is basically a newer [Electron](https://www.electronjs.org/), but with much better performance. The fact that it uses [Rust](https://www.rust-lang.org/) in the backend allows it to parse the docx files fast.
 
 ## Why Svelte?
 
 My Vue is that [Svelte](https://svelte.dev) is more Reactive, and it's easier to Express my ideas. I can see the Angle of it being a pretty new framework, but I think it's the Next big thing, and will probably become the Backbone of web development.
-
-## Why Typescript Svelte?
-
-[Typescript](https://www.typescriptlang.org/) has completely changed my life. Instead of merely typing a variable name, I now have the honor to type `let callbacks :{[key: string]: (()=>void)[]} = {}`. I'm so glad to see the helpful hints that `Element has no attribute to offsetTop`.
 
 ## Why quick_xml?
 
