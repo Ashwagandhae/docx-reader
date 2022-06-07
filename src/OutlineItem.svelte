@@ -1,24 +1,22 @@
 <script lang="ts">
-  import type { ParaType } from './types';
-  import { messenger } from './stores';
+  import type { RunType } from './types';
+  import { getContext } from 'svelte';
 
-  export let level: number = 0;
-  $: indent = Math.min(level, 3);
-  export let para: ParaType;
+  export let outline_level: number = 0;
+  $: indent = Math.min(outline_level, 3);
+  export let index: number;
+  export let runs: RunType[];
   let text = '';
   $: {
     text = '';
-    for (let run of para.runs) {
+    for (let run of runs) {
       text += run.text;
     }
   }
-  export let index: number;
-  function teleport() {
-    messenger.emit('teleport', index);
-  }
+  let teleport: (index: number) => void = getContext('teleport');
 </script>
 
-<li style={`margin-left: ${indent}em`} on:click={teleport}>
+<li style={`margin-left: ${indent}em`} on:click={() => teleport(index)}>
   <span class:bold={indent < 3} class:big={indent < 2}>
     {text}
   </span>
@@ -44,10 +42,12 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     width: auto;
+    overflow-wrap: break-word;
+    word-break: break-word;
     overflow: hidden;
   }
   .bold {
-    font-weight: bold;
+    font-weight: var(--bold);
     color: var(--text-strong);
   }
   .big {

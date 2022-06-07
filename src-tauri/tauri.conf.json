@@ -64,7 +64,8 @@
         "height": 900,
         "resizable": true,
         "title": "Docx Reader",
-        "width": 900
+        "width": 900,
+        "minWidth": 300
       }
     ]
   }

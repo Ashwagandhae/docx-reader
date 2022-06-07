@@ -4,10 +4,12 @@
   import { onMount, tick } from 'svelte';
   import Doc from './Doc.svelte';
   import Outline from './Outline.svelte';
-  import Button from './Button.svelte';
+  import Topbar from './Topbar.svelte';
+  import SearchResults from './SearchResults.svelte';
   import { appWindow, WebviewWindow } from '@tauri-apps/api/window';
-  import { messenger } from './stores';
   import { listen } from '@tauri-apps/api/event';
+  import { setContext } from 'svelte';
+  import { writable } from 'svelte/store';
 
   // listen for changes in system settings
 
@@ -20,13 +22,12 @@
   colorThemeMediaQuery.addEventListener('change', updateColorTheme);
 
   async function chooseFile() {
-    let filepath: string = await invoke('open_dialog');
-    if (!filepath) return;
-    readFile(filepath);
+    let path: string = await invoke('open_dialog');
+    if (!path) return;
+    loadFile(path);
   }
   let droppingFile = false;
   listen('tauri://file-drop-hover', () => {
-    console.log('among');
     droppingFile = true;
   });
   listen('tauri://file-drop-cancelled', () => {
@@ -35,58 +36,120 @@
   listen('tauri://file-drop', (event) => {
     droppingFile = false;
     if ((event.payload as string[]).length > 0) {
-      readFile(event.payload[0]);
+      loadFile(event.payload[0]);
     }
   });
-  async function readFile(filepath: string) {
-    let extension = filepath.split('.').pop();
+  listen('load_file', (event: { payload: { message: string } }) => {
+    loadFile(event.payload.message as string);
+  });
+  let fileInfo = writable({
+    open: false,
+    path: '',
+    name: '',
+  });
+  setContext('fileInfo', fileInfo);
+  async function loadFile(path: string) {
+    let extension = path.split('.').pop();
     if (extension != 'docx') return;
     await closeFile();
-    let fileResult = await invoke('load_file', { filepath });
+    let fileResult = await invoke('load_file', { path });
     if (!fileResult) return;
-    doc.getLoader().teleport(0);
-    outline.getLoader().teleport(0);
+    $fileInfo = {
+      open: true,
+      path,
+      name: path.split('/').pop(),
+    };
+    // set title of window
+    appWindow.setTitle($fileInfo.name);
+    doc.teleport(0);
+    outline.teleport(0);
+    searchResults?.teleport(0);
   }
   async function closeFile() {
-    let result = await invoke('unload_file');
-    outline.getLoader().reset();
-    doc.getLoader().reset();
+    await Promise.all([invoke('unload_file'), invoke('clear_search')]);
+    outline.reset();
+    doc.reset();
+    searchResults?.reset();
+    searchResults && searchResults?.reset();
+    $fileInfo = {
+      open: false,
+      path: '',
+      name: '',
+    };
     await tick();
   }
-  messenger.on('teleport', function (index) {
-    doc.getLoader().teleport(index);
+  let query = writable('');
+  setContext('query', query);
+  let selectedQuery = writable({
+    paraIndex: null,
+    charIndex: null,
   });
+  setContext('selectedQuery', selectedQuery);
+
+  function teleport(index: number) {
+    doc.teleport(index);
+  }
+  setContext('teleport', teleport);
+
   let doc: Doc;
   let outline: Outline;
+  let searchResults: SearchResults;
+
+  let showSearchResults = true;
+  let showOutline = true;
+
+  let resizeTimer: NodeJS.Timeout;
+  let isResizing = writable(false);
+  setContext('isResizing', isResizing);
+
+  function resizeHandler() {
+    clearTimeout(resizeTimer);
+    $isResizing = true;
+    resizeTimer = setTimeout(function () {
+      $isResizing = false;
+    }, 100);
+  }
+  function prevResult() {
+    searchResults?.prevResult();
+  }
+  setContext('prevResult', prevResult);
+  function nextResult() {
+    searchResults?.nextResult();
+  }
+  setContext('nextResult', nextResult);
 </script>
 
+<svelte:window on:resize={resizeHandler} />
 <main>
   {#if droppingFile}
     <div class="screen" transition:fade={{ duration: 200 }}>
       <div class="message">drop file here</div>
     </div>
   {/if}
-  <div class="grid">
-    <div class="tools">
-      <Button on:click={chooseFile}>Open file</Button>
-      <Button on:click={closeFile}>Close file</Button>
-    </div>
-    <div class="doc">
-      <Doc bind:this={doc} />
-    </div>
-    <div class="outline">
-      <Outline bind:this={outline} />
-    </div>
+
+  <div class="topbar">
+    <Topbar bind:showOutline bind:showSearchResults {chooseFile} />
   </div>
+  <div class="doc">
+    <Doc bind:this={doc} />
+  </div>
+  <aside class="outline">
+    <Outline bind:this={outline} {showOutline} />
+  </aside>
+  <aside class="search-results">
+    <SearchResults bind:this={searchResults} {showSearchResults} />
+  </aside>
 </main>
 
 <style>
   :global(body) {
     margin: 0;
     padding: 0;
-    font-family: sans-serif;
+    font-family: var(--font-family);
     color: var(--text);
     background-color: var(--back);
+    width: 100vw;
+    height: 100vh;
   }
   main {
     position: relative;
@@ -107,71 +170,84 @@
     font-size: 1em;
     color: var(--text);
   }
-  .tools {
+  .topbar {
     width: 100vw;
-    display: flex;
-    box-sizing: border-box;
-    justify-content: center;
-    align-items: center;
+    z-index: 10000;
     position: absolute;
-    background-color: var(--back-two);
-    z-index: 9999;
     height: var(--topbar-height);
-    gap: var(--padding);
-    padding: 5px;
-  }
-  .tools > button {
-    padding: 5px;
-    margin: 0;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: max(200px, 20%) 1fr;
-    grid-template-rows: var(--topbar-height) auto;
-    grid-template-areas:
-      'tools tools'
-      'outline doc';
-    gap: var(--gap);
-    width: 100vw;
-    height: 100vh;
-  }
-  .tools {
-    grid-area: tools;
   }
   .doc {
     position: relative;
-    height: calc(100vh - var(--topbar-height) - var(--gap));
+    height: 100vh;
+    width: 100vw;
     grid-area: doc;
+    box-sizing: border-box;
+    padding-top: var(--topbar-height);
+  }
+  aside {
+    width: var(--sidebar-width);
+    height: auto;
+    position: absolute;
+    top: 0;
+    z-index: 100;
   }
   .outline {
-    position: relative;
-    height: calc(100vh - var(--topbar-height) - var(--gap));
-    grid-area: outline;
+    left: 0;
+  }
+  .search-results {
+    right: 0;
+  }
+  :global(mark) {
+    background-color: var(--back-mark);
+    color: var(--text-strong);
+    border-radius: 0.3em;
+  }
+  :global(mark.selected) {
+    background-color: var(--back-mark-selected);
   }
   :global(body) {
     --padding: 10px;
-    --topbar-height: 50px;
+    --topbar-height: 40px;
     --gap: 0px;
+    --bold: 600;
     --border-radius: 10px;
-  }
-  :global(body) {
-    --back: hsl(0, 0%, 100%);
-    --back-two: hsl(0, 0%, 90%);
-    --back-highlight: hsl(195, 80%, 80%);
-
-    --text: hsl(0, 0%, 25%);
-    --text-strong: hsl(0, 0%, 15%);
+    --sidebar-width: max(150px, 15vw);
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+      Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+      'Segoe UI Symbol';
   }
   :global(body.dark) {
     --back: hsl(0, 0%, 15%);
     --back-hover: hsl(0, 0%, 17%);
     --back-active: hsl(0, 0%, 20%);
+
     --back-two: hsl(0, 0%, 20%);
     --back-two-hover: hsl(0, 0%, 27%);
     --back-two-active: hsl(0, 0%, 34%);
     --back-highlight: hsl(195, 20%, 30%);
 
+    --back-mark: hsl(52, 76%, 30%);
+    --back-mark-selected: hsl(30, 80%, 40%);
+
     --text: hsl(0, 0%, 75%);
+    --text-weak: hsl(0, 0%, 50%);
     --text-strong: hsl(0, 0%, 85%);
+  }
+  :global(body) {
+    --back: hsl(0, 0%, 100%);
+    --back-hover: hsl(0, 0%, 97%);
+    --back-active: hsl(0, 0%, 94%);
+
+    --back-two: hsl(0, 0%, 94%);
+    --back-two-hover: hsl(0, 0%, 90%);
+    --back-two-active: hsl(0, 0%, 80%);
+    --back-highlight: hsl(195, 100%, 80%);
+
+    --back-mark: hsl(60, 100%, 69%);
+    --back-mark-selected: hsl(40, 100%, 59%);
+
+    --text: hsl(0, 0%, 30%);
+    --text-weak: hsl(0, 0%, 50%);
+    --text-strong: hsl(0, 0%, 10%);
   }
 </style>

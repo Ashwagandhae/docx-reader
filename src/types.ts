@@ -23,3 +23,8 @@ export type OutlineItemType = {
   para: ParaType;
   index: number;
 };
+export type SearchResultType = {
+  text: string;
+  index: number;
+  query_index: number;
+};

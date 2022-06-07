@@ -11,9 +11,13 @@
     border: none;
     border-radius: var(--border-radius);
     cursor: pointer;
+    line-height: 1em;
     padding: 0.5em;
     margin: 0;
     color: var(--text);
+    height: 2em;
+    pointer-events: auto;
+    display: block;
   }
   button:hover {
     background-color: var(--back-two-hover);

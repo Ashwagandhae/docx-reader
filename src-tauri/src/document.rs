@@ -33,41 +33,24 @@ pub struct Run {
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Para {
-    pub runs: Vec<Run>,
-}
-#[derive(Clone, Serialize, Deserialize)]
-pub struct OutlineItem {
-    pub level: u32,
-    pub para: Para,
     pub index: usize,
+    pub outline_level: Option<u32>,
+    pub runs: Vec<Run>,
 }
 pub struct Document {
     pub paras: Vec<Para>,
-    pub outline_items: Vec<OutlineItem>,
+    pub outline_paras: Vec<Para>,
     pub style_map: HashMap<String, Attr>,
 }
-pub trait Drop {
-    fn new() -> Self;
-    fn load_file(&mut self, file_path: &str);
-    fn load_style_map(&mut self, contents: &mut String);
-    fn load_paras(&mut self, contents: &mut String);
-    fn mutate_style(style: &mut Style, priority_style: &Style);
-
-    fn get_style_id(&mut self, style: &mut Style, style_id: &String);
-
-    fn get_attr(reader: &Reader<&[u8]>, event: &BytesStart, attr_name: &[u8]) -> Option<String>;
-
-    // fn get_style(&mut self, style: &mut Style, element: &Element);
-}
-impl Drop for Document {
-    fn new() -> Document {
+impl Document {
+    pub fn new() -> Document {
         Document {
+            outline_paras: Vec::new(),
             paras: Vec::new(),
-            outline_items: Vec::new(),
             style_map: HashMap::new(),
         }
     }
-    fn load_file(&mut self, file_path: &str) {
+    pub fn load_file(&mut self, file_path: &str) {
         let file = fs::File::open(file_path).unwrap();
         let mut archive = ZipArchive::new(file).unwrap();
         let mut style = archive.by_name("word/styles.xml").unwrap();
@@ -80,7 +63,11 @@ impl Drop for Document {
         para.read_to_string(buf).unwrap();
         self.load_paras(buf);
     }
-    fn get_attr(reader: &Reader<&[u8]>, event: &BytesStart, attr_name: &[u8]) -> Option<String> {
+    pub fn get_attr(
+        reader: &Reader<&[u8]>,
+        event: &BytesStart,
+        attr_name: &[u8],
+    ) -> Option<String> {
         let mut attr_val = None;
         for attribute in event.attributes() {
             let attribute = attribute.unwrap();
@@ -90,7 +77,7 @@ impl Drop for Document {
         }
         return attr_val;
     }
-    fn load_style_map(&mut self, contents: &mut String) {
+    pub fn load_style_map(&mut self, contents: &mut String) {
         let mut reader = Reader::from_str(contents);
 
         let mut buf = Vec::new();
@@ -200,12 +187,16 @@ impl Drop for Document {
         //   }
         // }
     }
-    fn load_paras(&mut self, contents: &mut String) {
+    pub fn load_paras(&mut self, contents: &mut String) {
         let mut reader = Reader::from_str(contents);
 
         let mut buf = Vec::new();
         let mut path: Vec<Vec<u8>> = Vec::new();
-        let mut current_para = Para { runs: Vec::new() };
+        let mut current_para = Para {
+            index: 0,
+            runs: Vec::new(),
+            outline_level: None,
+        };
         let mut current_run = Run {
             text: "".to_string(),
             style: Style {
@@ -225,7 +216,6 @@ impl Drop for Document {
         self.get_style_id(&mut current_para_style, &"Normal".to_string());
         let mut current_run_style = current_para_style.clone();
         let mut current_style = &mut current_para_style;
-        let mut current_outline_level: Option<u32> = None;
         loop {
             match reader.read_event(&mut buf) {
                 Ok(Event::Start(ref e)) => {
@@ -277,7 +267,7 @@ impl Drop for Document {
                                 let id_unwrapped = id.unwrap();
                                 let attr = self.style_map.get(&id_unwrapped);
                                 if attr.is_some() && attr.unwrap().outline_level.is_some() {
-                                    current_outline_level =
+                                    current_para.outline_level =
                                         Some(attr.unwrap().outline_level.unwrap());
                                 }
                                 self.get_style_id(&mut current_style, &id_unwrapped);
@@ -306,23 +296,22 @@ impl Drop for Document {
                             },
                         };
                     } else if end_tag == b"w:p" {
-                        let new_para = current_para.clone();
-                        self.paras.push(new_para.clone());
-                        if current_outline_level.is_some() {
-                            self.outline_items.push(OutlineItem {
-                                level: current_outline_level.unwrap(),
-                                para: new_para.clone(),
-                                index: self.paras.len() - 1,
-                            });
+                        current_para.index = self.paras.len();
+                        self.paras.push(current_para.clone());
+                        if current_para.outline_level.is_some() {
+                            self.outline_paras.push(current_para.clone());
                         }
-                        current_outline_level = None;
 
                         current_style.bold = None;
                         current_style.underline = None;
                         current_style.highlight = None;
                         current_style.size = None;
                         self.get_style_id(&mut current_style, &"Normal".to_string());
-                        current_para = Para { runs: Vec::new() };
+                        current_para = Para {
+                            index: 0,
+                            runs: Vec::new(),
+                            outline_level: None,
+                        };
                     }
                 }
                 Ok(Event::Text(e)) => {
@@ -335,14 +324,14 @@ impl Drop for Document {
             buf.clear();
         }
     }
-    fn get_style_id(&mut self, style: &mut Style, style_id: &String) {
+    pub fn get_style_id(&mut self, style: &mut Style, style_id: &String) {
         let id_style = self.style_map.get(style_id);
         if id_style.is_some() {
             Self::mutate_style(style, &id_style.unwrap().style);
         }
     }
-    // fn get_style(&mut self, style: &mut Style, element: &Element) {}
-    fn mutate_style(style: &mut Style, priority_style: &Style) {
+    // pub fn get_style(&mut self, style: &mut Style, element: &Element) {}
+    pub fn mutate_style(style: &mut Style, priority_style: &Style) {
         style.bold = priority_style.bold.or(style.bold);
         style.underline = priority_style.underline.or(style.underline);
         style.highlight = priority_style.highlight.or(style.highlight);

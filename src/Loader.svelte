@@ -1,20 +1,19 @@
 <script lang="ts">
-  import { invoke } from '@tauri-apps/api';
   import { onMount, tick } from 'svelte';
 
-  export let component: any;
-  export let serverCommand: string;
+  export let items: any;
+  export let serverCommand: (i: number, j: number) => Promise<any[]>;
   export let fetchAmount = 10;
   export let loaderHeight = 500;
 
-  let viewerElement: HTMLElement;
+  export let viewerElement: HTMLElement = null;
   let topLoaderElement: HTMLElement;
   let bottomLoaderElement: HTMLElement;
   let itemsElement: HTMLElement;
 
-  let items = [];
   let startIndex = 0;
   let endIndex = 0;
+  let muteObserver = false;
   let topLoadShowing = true;
   let bottomLoadShowing = true;
   export function reset() {
@@ -24,9 +23,13 @@
     topLoadShowing = true;
     bottomLoadShowing = true;
   }
+  export function getItemsElement() {
+    return itemsElement;
+  }
 
   let observer = new IntersectionObserver(
     (entries) => {
+      if (muteObserver) return;
       let shouldLoadBottom = false;
       let shouldLoadTop = false;
       for (let entry of entries) {
@@ -52,23 +55,26 @@
   );
 
   onMount(async function () {
-    viewerElement = topLoaderElement.parentElement.parentElement;
+    if (!viewerElement) {
+      viewerElement = topLoaderElement.parentElement.parentElement;
+    }
     observer.observe(topLoaderElement);
     observer.observe(bottomLoaderElement);
-    reset();
+    teleport(0);
   });
   async function loadItemsTop(amount: number) {
     let i = Math.max(0, startIndex - amount);
     let j = Math.max(0, startIndex);
 
-    let newItems: any[] = await invoke(serverCommand, { i, j });
+    let newItems: any[] = await serverCommand(i, j);
     startIndex -= newItems.length;
     return newItems;
   }
   async function loadItemsBottom(amount: number) {
     let i = Math.max(0, endIndex);
     let j = Math.max(0, endIndex + amount);
-    let newItems: any[] = await invoke(serverCommand, { i, j });
+    let newItems: any[] = await serverCommand(i, j);
+
     endIndex += newItems.length;
     return newItems;
   }
@@ -77,7 +83,6 @@
       bottomLoaderElement.offsetTop - viewerElement.scrollTop <
       viewerElement.clientHeight
     ) {
-      console.log('extend bottom');
       let newItems = await loadItemsBottom(fetchAmount);
       if (newItems.length == 0) return;
       items = [...items, ...newItems];
@@ -92,7 +97,6 @@
         topLoaderElement.clientHeight >
       0
     ) {
-      console.log('extend top');
       let newItems = await loadItemsTop(fetchAmount);
       if (newItems.length == 0) return;
       let oldHeight = itemsElement.clientHeight;
@@ -123,9 +127,9 @@
     await tick();
     itemsHeightChange += oldHeight - itemsElement.clientHeight;
     viewerElement.scrollTop -= itemsHeightChange;
-    extendItemsTop();
+    await extendItemsTop();
   }
-  export async function loadBottom() {
+  async function loadBottom() {
     let newItems = await loadItemsBottom(fetchAmount);
     if (newItems.length == 0) return;
     // remove out of view items
@@ -147,15 +151,48 @@
     items = [...items, ...newItems];
     await tick();
     viewerElement.scrollTop += itemsHeightChange;
-    extendItemsBottom();
+    await extendItemsBottom();
   }
-  export async function teleport(index: number) {
+  // prevent teleports from being called at the same time
+  // let teleportQueue = [];
+  // export async function teleport(index: number, force?: boolean) {
+  //   // if teleportQueue is empty, start a new chain
+  //   if (teleportQueue.length == 0) {
+  //     teleportChain(index, force);
+  //   } else {
+  //     // add args to queue
+  //     let args = {
+  //       index: index,
+  //       force: force,
+  //     };
+  //     teleportQueue.push(args);
+  //   }
+  // }
+  export async function teleport(index: number, force?: boolean) {
+    if (!force && items.length > 0 && index >= startIndex && index < endIndex) {
+      // if this forces it to load anything, just do normal teleport
+      let item = itemsElement.children[index - startIndex] as HTMLElement;
+      if (
+        item &&
+        !(item.offsetTop < loaderHeight) &&
+        !(
+          item.offsetTop + viewerElement.clientHeight >
+          bottomLoaderElement.offsetTop
+        )
+      ) {
+        viewerElement.scrollTop = item.offsetTop;
+        return;
+      }
+    }
     reset();
+    // loadbottom without observers noticing, so loadBottom doesn't get called twice
+    muteObserver = true;
     startIndex = index;
     endIndex = index;
     await loadBottom();
     viewerElement.scrollTop = loaderHeight + 1;
-    await extendItemsBottom();
+    await tick();
+    muteObserver = false;
   }
 </script>
 
@@ -166,7 +203,7 @@
 />
 
 <div class="items" bind:this={itemsElement}>
-  <svelte:component this={component} {items} />
+  <slot />
 </div>
 
 <div
@@ -174,6 +211,7 @@
   style={`height:${loaderHeight}px`}
   bind:this={bottomLoaderElement}
 />
+<div class="spacefiller" style={`height:${viewerElement?.clientHeight}px`} />
 
 <style>
   .loader {
