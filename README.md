@@ -23,9 +23,10 @@ This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https:
 
 ## MacOS
 
-1. [Click here](https://ashwagandhae.github.io/docx-reader/docx-reader_0.1.0_x64.dmg) to download a zip
-2. Unzip the zip file (I swear its not a virus)
-3. Right click and click open (it won't let you open otherwise)
+1. [Click here](https://ashwagandhae.github.io/docx-reader/docx-reader_0.1.0_x64.dmg) to download the dmg
+2. Double click the dmg
+3. Drag the app into Applications folder
+4. Right click and click open (it won't let you open otherwise)
 
 ## Windows & Linux
 
