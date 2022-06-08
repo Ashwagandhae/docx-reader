@@ -20,8 +20,6 @@
     loader?.reset();
   }
   async function serverCommand(i: number, j: number) {
-    console.log('get traced');
-    console.trace();
     if ($query.length > 0) {
       let ret = (await invoke('search', {
         query: $query,

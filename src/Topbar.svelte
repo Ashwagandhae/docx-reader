@@ -3,6 +3,7 @@
   import Search from './Search.svelte';
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
+  import { listen } from '@tauri-apps/api/event';
 
   export let showOutline: boolean;
   export let chooseFile: () => void;
@@ -11,6 +12,8 @@
   let isResizing: Writable<boolean> = getContext('isResizing');
   let fileInfo: Writable<{ open: boolean; name: string; path: string }> =
     getContext('fileInfo');
+
+  let isFullscreen: Writable<boolean> = getContext('isFullscreen');
 </script>
 
 <div
@@ -18,17 +21,20 @@
   class:showOutline
   class:showSearchResults
   class:isResizing={$isResizing}
+  class:isFullscreen={$isFullscreen}
+  on:select={() => false}
+  data-tauri-drag-region
 >
-  <section class="outline">
-    <Button on:click={() => (showOutline = !showOutline)}
-      >{#if showOutline}
+  <section class="outline" data-tauri-drag-region>
+    <Button on:click={() => (showOutline = !showOutline)}>
+      {#if showOutline}
         &larr;
       {:else}
         &rarr;
-      {/if}</Button
-    >
+      {/if}
+    </Button>
   </section>
-  <section class="middle" class:open={$fileInfo.open}>
+  <section class="middle" class:open={$fileInfo.open} data-tauri-drag-region>
     <h1>
       {#if $fileInfo.open}
         {$fileInfo.name}
@@ -38,7 +44,7 @@
     </h1>
     <Button on:click={chooseFile}>Open</Button>
   </section>
-  <section class="search">
+  <section class="search" data-tauri-drag-region>
     <Search placeholder={'Search'} />
   </section>
 </div>
@@ -50,14 +56,25 @@
     align-items: center;
     width: inherit;
     height: inherit;
-    gap: calc(var(--padding) / 2);
+
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
+
   .top > section {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: var(--padding);
     height: inherit;
+    cursor: default;
+    padding: 0 calc(var(--padding) / 2);
+    box-sizing: border-box;
+  }
+  .isFullscreen .outline {
+    width: 40px;
   }
   .showOutline .outline,
   .search {
@@ -66,14 +83,10 @@
   /* todo make width not fixed */
   .outline {
     justify-content: flex-end;
-    width: 40px;
+    width: 100px;
     transition: width 300ms;
   }
-  .outline,
-  .search {
-    box-sizing: border-box;
-    padding: 0 calc(var(--padding) / 2);
-  }
+
   .isResizing .outline {
     transition: none;
   }

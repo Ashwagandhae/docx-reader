@@ -19,6 +19,7 @@ quick-xml = "0.22.0"
 serde = "1.0.137"
 tauri = { version = "1.0.0-rc.9", features = ["api-all"] }
 zip = "0.6.2"
+cocoa = "0.24"
 
 [features]
 # by default Tauri runs in production mode

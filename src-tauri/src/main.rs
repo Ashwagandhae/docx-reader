@@ -2,6 +2,42 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
+use cocoa::appkit::{NSWindow, NSWindowStyleMask};
+use tauri::{Runtime, Window};
+
+pub trait WindowExt {
+    #[cfg(target_os = "macos")]
+    fn set_transparent_titlebar(&self, transparent: bool);
+}
+
+impl<R: Runtime> WindowExt for Window<R> {
+    #[cfg(target_os = "macos")]
+    fn set_transparent_titlebar(&self, transparent: bool) {
+        use cocoa::appkit::NSWindowTitleVisibility;
+
+        unsafe {
+            let id = self.ns_window().unwrap() as cocoa::base::id;
+
+            let mut style_mask = id.styleMask();
+            style_mask.set(
+                NSWindowStyleMask::NSFullSizeContentViewWindowMask,
+                transparent,
+            );
+            id.setStyleMask_(style_mask);
+
+            id.setTitleVisibility_(if transparent {
+                NSWindowTitleVisibility::NSWindowTitleHidden
+            } else {
+                NSWindowTitleVisibility::NSWindowTitleVisible
+            });
+            id.setTitlebarAppearsTransparent_(if transparent {
+                cocoa::base::YES
+            } else {
+                cocoa::base::NO
+            });
+        }
+    }
+}
 
 mod document;
 use document::Document;
@@ -13,6 +49,7 @@ use std::sync::Mutex;
 
 use serde::{Deserialize, Serialize};
 use tauri::AboutMetadata;
+use tauri::Manager;
 use tauri::State;
 use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
 
@@ -36,6 +73,10 @@ struct SearchResults(Mutex<SearchResultsState>);
 #[derive(Clone, serde::Serialize)]
 struct Payload {
     message: String,
+}
+#[tauri::command]
+fn get_window_fullscreen_state(window: tauri::Window) -> bool {
+    window.is_fullscreen().unwrap_or(false)
 }
 
 #[tauri::command]
@@ -286,6 +327,12 @@ fn main() {
     // ));
 
     tauri::Builder::default()
+        .setup(|app| {
+            let win = app.get_window("main").unwrap();
+            win.set_transparent_titlebar(true);
+
+            Ok(())
+        })
         .menu(menu)
         .on_menu_event(|event| match event.menu_item_id() {
             "open" => FileDialogBuilder::new()
@@ -319,7 +366,8 @@ fn main() {
             clear_search,
             unload_file,
             get_outline_paras,
-            open_dialog
+            open_dialog,
+            get_window_fullscreen_state
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");

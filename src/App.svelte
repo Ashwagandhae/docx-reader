@@ -101,13 +101,17 @@
   let resizeTimer: NodeJS.Timeout;
   let isResizing = writable(false);
   setContext('isResizing', isResizing);
-
+  let isFullscreen = writable(false);
+  setContext('isFullscreen', isFullscreen);
   function resizeHandler() {
     clearTimeout(resizeTimer);
     $isResizing = true;
     resizeTimer = setTimeout(function () {
       $isResizing = false;
-    }, 100);
+      invoke('get_window_fullscreen_state', {}).then((result: boolean) => {
+        $isFullscreen = result;
+      });
+    }, 600);
   }
   function prevResult() {
     searchResults?.prevResult();
@@ -175,6 +179,7 @@
     z-index: 10000;
     position: absolute;
     height: var(--topbar-height);
+    cursor: default;
   }
   .doc {
     position: relative;
