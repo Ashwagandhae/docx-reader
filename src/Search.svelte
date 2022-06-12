@@ -46,6 +46,11 @@
       textarea.focus();
     }
   }
+  $: {
+    if ($selectedQuery.paraIndex != null) {
+      textarea.focus();
+    }
+  }
   let value: string = '';
   let valueUpdateTimeout: NodeJS.Timeout;
   function onValueUpdate() {

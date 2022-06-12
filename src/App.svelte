@@ -12,7 +12,6 @@
   import { writable } from 'svelte/store';
 
   // listen for changes in system settings
-
   let colorThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   let updateColorTheme = function () {
     document.body.classList.toggle('dark', colorThemeMediaQuery.matches);
@@ -69,7 +68,6 @@
     await Promise.all([invoke('unload_file'), invoke('clear_search')]);
     outline.reset();
     doc.reset();
-    searchResults?.reset();
     searchResults && searchResults?.reset();
     $fileInfo = {
       open: false,
@@ -121,9 +119,17 @@
     searchResults?.nextResult();
   }
   setContext('nextResult', nextResult);
+  function handleKeyDown(event: KeyboardEvent) {
+    if (event.metaKey) {
+      if (event.key == 'n') {
+        event.preventDefault();
+        invoke('new_window', {});
+      }
+    }
+  }
 </script>
 
-<svelte:window on:resize={resizeHandler} />
+<svelte:window on:resize={resizeHandler} on:keydown={handleKeyDown} />
 <main>
   {#if droppingFile}
     <div class="screen" transition:fade={{ duration: 200 }}>
@@ -135,7 +141,7 @@
     <Topbar bind:showOutline bind:showSearchResults {chooseFile} />
   </div>
   <div class="doc">
-    <Doc bind:this={doc} />
+    <Doc bind:this={doc} {showOutline} {showSearchResults} />
   </div>
   <aside class="outline">
     <Outline bind:this={outline} {showOutline} />
@@ -201,18 +207,12 @@
   }
   .search-results {
     right: 0;
-  }
-  :global(mark) {
-    background-color: var(--back-mark);
-    color: var(--text-strong);
-    border-radius: 0.3em;
-  }
-  :global(mark.selected) {
-    background-color: var(--back-mark-selected);
+    pointer-events: none;
   }
   :global(body) {
     --padding: 10px;
-    --topbar-height: 40px;
+    --padding-small: 5px;
+    --topbar-height: calc(2em + var(--padding));
     --gap: 0px;
     --bold: 600;
     --border-radius: 10px;
@@ -220,6 +220,7 @@
     --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
       Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
       'Segoe UI Symbol';
+    --transition-speed: 300ms;
   }
   :global(body.dark) {
     --back: hsl(0, 0%, 15%);

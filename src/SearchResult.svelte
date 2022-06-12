@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SearchResultRun from './SearchResultRun.svelte';
   import type { ParaType } from './types';
 
   import { getContext, onMount } from 'svelte';
@@ -6,7 +7,7 @@
 
   export let link: number;
   export let index: number;
-  export let text: string;
+  export let para: ParaType;
   export let queryIndex: number;
   export let selected: boolean;
 
@@ -15,13 +16,16 @@
     getContext('selectedQuery');
   let startIndex: number;
   let charIndex: number;
+  let text = para.runs.reduce((prev, curr) => prev + curr.text, '');
+
+  let displayRuns = [];
   $: {
+    let lowerText = text.toLowerCase();
     // will be zero because +1
     charIndex = -1;
-    let lowerText = text.toLowerCase();
     // get the specific index charIndex from queryIndex
     for (let i = 0; i < queryIndex + 1; i++) {
-      charIndex = lowerText.indexOf($query, charIndex + 1);
+      charIndex = lowerText.indexOf($query.toLowerCase(), charIndex + 1);
     }
     startIndex = Math.max(0, charIndex - 30);
     while (text[startIndex - 1] !== ' ') {
@@ -30,6 +34,28 @@
         break;
       }
       startIndex++;
+    }
+    // then loop through runs and apply
+    let i = 0;
+    for (let run of para.runs) {
+      if (i + run.text.length > startIndex) {
+        let startCutoff = 0;
+        if (startIndex > i) {
+          startCutoff = i - startIndex;
+        }
+        let queryMatch = undefined;
+        if (charIndex + $query.length >= i && charIndex < i + run.text.length) {
+          queryMatch = charIndex - i;
+        }
+
+        displayRuns.push({
+          ...run,
+          queryMatch,
+          startCutoff,
+        });
+      }
+
+      i += run.text.length;
     }
   }
   let element: HTMLElement;
@@ -61,11 +87,19 @@
   bind:this={element}
 >
   <p>
-    <span class:ellipses={startIndex != 0}
+    {#each displayRuns as run}
+      <SearchResultRun
+        text={run.text}
+        style={run.style}
+        queryMatch={run.queryMatch}
+        startCutoff={run.startCutoff}
+      />
+    {/each}
+    <!-- <span class:ellipses={startIndex != 0}
       >{text.slice(startIndex, charIndex)}</span
     ><mark class:selected
       >{text.slice(charIndex, charIndex + $query.length)}</mark
-    ><span>{text.slice(charIndex + $query.length)}</span>
+    ><span>{text.slice(charIndex + $query.length)}</span> -->
   </p>
 </li>
 
@@ -100,10 +134,7 @@
     overflow: hidden;
     margin: 0;
   }
-  span {
-    color: var(--text);
-  }
-  span.ellipses::before {
+  p::before {
     content: '...';
   }
 </style>

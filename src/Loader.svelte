@@ -169,6 +169,7 @@
   //   }
   // }
   export async function teleport(index: number, force?: boolean) {
+    muteObserver = true;
     if (!force && items.length > 0 && index >= startIndex && index < endIndex) {
       // if this forces it to load anything, just do normal teleport
       let item = itemsElement.children[index - startIndex] as HTMLElement;
@@ -186,7 +187,6 @@
     }
     reset();
     // loadbottom without observers noticing, so loadBottom doesn't get called twice
-    muteObserver = true;
     startIndex = index;
     endIndex = index;
     await loadBottom();

@@ -2,7 +2,7 @@
   import type { StyleType } from './types';
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
-  import { selectMark } from './transition';
+  import Mark from './Mark.svelte';
   let query: Writable<string> = getContext('query');
   export let text: string;
   export let style: StyleType;
@@ -48,9 +48,9 @@
 >
   {#each splitText as part, index}
     {#if matchesDict[index] == 2}
-      <mark class="selected" in:selectMark>{part}</mark>
+      <Mark selected={true}>{part}</Mark>
     {:else if matchesDict[index] == 1}
-      <mark>{part}</mark>
+      <Mark>{part}</Mark>
     {:else}
       {part}
     {/if}

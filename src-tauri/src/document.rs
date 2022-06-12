@@ -14,7 +14,7 @@ use quick_xml::events::BytesStart;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
 pub struct Style {
     pub bold: Option<bool>,
     pub underline: Option<bool>,
@@ -279,8 +279,26 @@ impl Document {
                 Ok(Event::End(_e)) => {
                     let end_tag = path.pop().unwrap();
                     if end_tag == b"w:r" {
+                        // format run text
+                        // replace whitespace
+                        current_run.text = current_run.text.replace("\n", "");
+                        current_run.text = current_run.text.replace("\r", "");
+                        current_run.text = current_run.text.replace("\t", "");
+
                         current_run.style = current_style.clone();
-                        current_para.runs.push(current_run.clone());
+                        // if run exists
+                        if current_run.text != "" {
+                            // if last run style is the same
+                            let last_run = &current_para.runs.last();
+                            if last_run.is_some() && last_run.unwrap().style == current_run.style {
+                                // remove last run and prepend text to current
+                                current_run.text =
+                                    last_run.unwrap().text.clone() + &current_run.text;
+                                current_para.runs.pop();
+                            }
+                            // add new run
+                            current_para.runs.push(current_run.clone());
+                        }
                         current_style.bold = None;
                         current_style.underline = None;
                         current_style.highlight = None;

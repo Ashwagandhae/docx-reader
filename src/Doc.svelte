@@ -4,6 +4,18 @@
   import { invoke } from '@tauri-apps/api';
   import { tick, onMount } from 'svelte';
   import type { ParaType } from './types';
+  import { getContext } from 'svelte';
+  import type { Writable } from 'svelte/store';
+  import {
+    getSelectionString,
+    copyToClipboard,
+    getParaHTML,
+  } from './selection';
+
+  let query: Writable<string> = getContext('query');
+
+  export let showOutline: boolean;
+  export let showSearchResults: boolean;
 
   let viewerElement: HTMLElement;
   let loader: Loader;
@@ -43,11 +55,12 @@
         let size = [entry.contentRect.width, entry.contentRect.height];
         if (lastSize[0] !== size[0]) {
           let diff = lastSize[1] - size[1];
+          let oldHeight = viewerElement.clientHeight;
           let ratio =
             (viewerElement.scrollTop + viewerElement.clientHeight / 2) /
             (viewerElement.scrollHeight + diff);
           viewerElement.scrollTop =
-            viewerElement.scrollHeight * ratio - viewerElement.clientHeight / 2;
+            viewerElement.scrollHeight * ratio - oldHeight / 2;
         }
         lastSize = size;
       }
@@ -56,6 +69,7 @@
   function handleKeyDown(e: KeyboardEvent) {
     if (e.metaKey) {
       if (e.key === '=') {
+        e.preventDefault();
         zoom += 0.1;
         zoom = Math.max(Math.min(zoom, 8), 0.3);
         let ratio =
@@ -64,6 +78,8 @@
         viewerElement.scrollTop =
           viewerElement.scrollHeight * ratio - viewerElement.clientHeight / 2;
       } else if (e.key === '-') {
+        e.preventDefault();
+
         zoom -= 0.1;
         zoom = Math.max(Math.min(zoom, 8), 0.3);
         let ratio =
@@ -71,24 +87,75 @@
           viewerElement.scrollHeight;
         viewerElement.scrollTop =
           viewerElement.scrollHeight * ratio - viewerElement.clientHeight / 2;
+      } else if (e.key === 'c') {
+        e.preventDefault();
+        copyToClipboard(getSelectionString(parasElement, items));
       }
+    }
+  }
+
+  $: {
+    if (showSearchResults && $query.length > 0 && !showOutline) {
+      viewerElement.scrollLeft = viewerElement.scrollWidth;
     }
   }
 
   onMount(() => {
     resizeObserver.observe(parasElement);
   });
+  async function copyParaAndChildren(index: number) {
+    let ret = document.createElement('div');
+    let loadedItems = items.slice(index);
+    let para = items[index];
+    ret.appendChild(getParaHTML(para));
+    let i = 1;
+    while (i < loadedItems.length) {
+      let child = loadedItems[i];
+      if (
+        para.outline_level != null &&
+        (child.outline_level == null ||
+          child.outline_level > para.outline_level)
+      ) {
+        ret.appendChild(getParaHTML(child));
+      } else {
+        break;
+      }
+      // load more if needed
+      if (i + 1 >= loadedItems.length) {
+        let currentIndex = loadedItems[loadedItems.length - 1].index;
+        let newItems = await serverCommand(
+          currentIndex + 1,
+          currentIndex + 1 + 30
+        );
+        // will be added by 1
+        i = -1;
+        loadedItems = newItems;
+      }
+      i++;
+    }
+    copyToClipboard(ret.innerHTML);
+  }
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
 <div class="topbar" />
-<div class="viewer" on:wheel={handleZoom} bind:this={viewerElement}>
+<div
+  class="viewer"
+  on:wheel={handleZoom}
+  bind:this={viewerElement}
+  class:showOutline
+  class:showSearchResults={showSearchResults && $query.length > 0}
+>
   <div class="content" style={`font-size: ${zoom * 16}px;`}>
     <div class="paras-container">
       <div class="paras" bind:this={parasElement}>
         <Loader bind:this={loader} bind:items {viewerElement} {serverCommand}>
-          {#each items as item (item)}
-            <Para {...item} />
+          {#each items as item, index (item.index)}
+            <Para
+              {...item}
+              {viewerElement}
+              copySelfAndChildren={() => copyParaAndChildren(index)}
+            />
           {/each}
         </Loader>
       </div>
@@ -108,11 +175,16 @@
     font-size: 16px;
     box-sizing: content-box;
     width: 100vw;
-    padding: 0 0 0 calc(var(--sidebar-width));
+    padding: 0;
     height: auto;
+    /* transition: padding 300ms; */
+  }
+
+  .showSearchResults.showOutline .content {
+    padding: 0 0 0 calc(var(--sidebar-width));
   }
   .paras-container {
-    width: min(calc(100vw - var(--sidebar-width)));
+    width: 100vw;
     height: auto;
     box-sizing: border-box;
     display: flex;
@@ -120,9 +192,25 @@
     justify-content: center;
     align-items: center;
   }
+  .showOutline.showSearchResults .paras-container {
+    width: min(calc(100vw - var(--sidebar-width)));
+  }
+  .paras-container {
+    padding: 0;
+  }
+  .showOutline .paras-container {
+    padding-left: var(--sidebar-width);
+  }
+  .showSearchResults .paras-container {
+    padding-right: var(--sidebar-width);
+  }
+  .showOutline.showSearchResults .paras-container {
+    padding: 0;
+  }
+
   .paras {
     padding: var(--padding);
     box-sizing: border-box;
-    width: min(100%, 55em);
+    width: min(100%, 50em);
   }
 </style>

@@ -2,9 +2,27 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
-use cocoa::appkit::{NSWindow, NSWindowStyleMask};
-use tauri::{Runtime, Window};
 
+use cocoa::appkit::{NSWindow, NSWindowStyleMask};
+use tauri::api::dialog::FileDialogBuilder;
+use tauri::{Runtime, Window};
+mod document;
+
+mod app_commands;
+mod document_commands;
+
+use document_commands::{OutlineParas, Paras, SearchResults, SearchResultsState};
+
+use std::sync::Mutex;
+
+use tauri::AboutMetadata;
+use tauri::Manager;
+use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
+
+#[derive(Clone, serde::Serialize)]
+struct Payload {
+    message: String,
+}
 pub trait WindowExt {
     #[cfg(target_os = "macos")]
     fn set_transparent_titlebar(&self, transparent: bool);
@@ -37,227 +55,6 @@ impl<R: Runtime> WindowExt for Window<R> {
             });
         }
     }
-}
-
-mod document;
-use document::Document;
-use document::Para;
-
-use std::fmt::Debug;
-use std::path::PathBuf;
-use std::sync::Mutex;
-
-use serde::{Deserialize, Serialize};
-use tauri::AboutMetadata;
-use tauri::Manager;
-use tauri::State;
-use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-struct SearchResult {
-    link: usize,
-    index: usize,
-    text: String,
-    query_index: usize,
-}
-
-struct Paras(Mutex<Vec<Para>>);
-struct OutlineParas(Mutex<Vec<Para>>);
-struct SearchResultsState {
-    results: Vec<SearchResult>,
-    last_query: Option<String>,
-    para_texts: Vec<String>,
-}
-struct SearchResults(Mutex<SearchResultsState>);
-
-#[derive(Clone, serde::Serialize)]
-struct Payload {
-    message: String,
-}
-#[tauri::command]
-fn get_window_fullscreen_state(window: tauri::Window) -> bool {
-    window.is_fullscreen().unwrap_or(false)
-}
-
-#[tauri::command]
-fn load_file(
-    path: String,
-    paras: State<Paras>,
-    outline_paras: State<OutlineParas>,
-    search_results: State<SearchResults>,
-) -> bool {
-    let mut paras = paras.0.lock().unwrap();
-    let mut outline_paras = outline_paras.0.lock().unwrap();
-    let mut search_results = search_results.0.lock().unwrap();
-    // first unload file
-    println!("unloading current file");
-    paras.clear();
-    outline_paras.clear();
-    search_results.results.clear();
-    search_results.last_query = None;
-    search_results.para_texts.clear();
-    // then load new one
-    println!("loading {:?} file", path);
-    let mut doc = Document::new();
-    doc.load_file(&path);
-    for para in doc.paras {
-        let mut combined_text: String = "".to_string();
-        for run in para.runs.iter() {
-            combined_text.push_str(&run.text);
-        }
-        search_results.para_texts.push(combined_text);
-        paras.push(para);
-    }
-    for outline_para in doc.outline_paras {
-        outline_paras.push(outline_para);
-    }
-    println!("done loading");
-    true
-}
-#[tauri::command]
-fn unload_file(
-    paras: State<Paras>,
-    outline_paras: State<OutlineParas>,
-    search_results: State<SearchResults>,
-) -> bool {
-    let mut paras = paras.0.lock().unwrap();
-    let mut outline_paras = outline_paras.0.lock().unwrap();
-    let mut search_results = search_results.0.lock().unwrap();
-    paras.clear();
-    outline_paras.clear();
-    search_results.results.clear();
-    search_results.last_query = None;
-    search_results.para_texts.clear();
-    return true;
-}
-#[tauri::command]
-fn search(
-    query: String,
-    i: usize,
-    j: usize,
-    paras: State<'_, Paras>,
-    search_results: State<'_, SearchResults>,
-) -> Vec<SearchResult> {
-    println!("searching with query: {:?}", query);
-
-    let paras = paras.0.lock().unwrap();
-    let mut search_results = search_results.0.lock().unwrap();
-    let query = query.to_lowercase();
-    // decide what to do with search_results.results
-    if search_results.last_query.is_some() {
-        // if queries are the same, we can keep everything
-        if &query == search_results.last_query.as_ref().unwrap() {
-            println!("reused old searches")
-        // } else
-        // // if last query is smaller version of this query, we can narrow down old search results first
-        // if query.contains(search_results.last_query.as_ref().unwrap()) {
-        //     println!("narrowed down old searches");
-        //     // loop through search_results.results and remove all that are not in query
-        //     let mut new_results = Vec::new();
-        //     for result in search_results.results.iter() {
-        //         if result.text.contains(&query) {
-        //             new_results.push(result.clone());
-        //         }
-        //     }
-        //     search_results.results = new_results;
-        } else
-        // if last query is bigger version of this query, we can clear old search results
-        {
-            println!("cleared old searches");
-            search_results.results.clear();
-        }
-    } else {
-        println!("no old searches")
-    }
-    search_results.last_query = Some(query.clone());
-    // fill in the needed search_results.results
-    let last_result = search_results.results.last();
-    let mut l = 0;
-    if last_result.is_some() {
-        l = last_result.unwrap().link + 1;
-    }
-    while search_results.results.len() < j && l < paras.len() {
-        let combined_text = search_results.para_texts[l].clone();
-        for i in 0..combined_text.to_lowercase().matches(&query).count() {
-            let index = search_results.results.len();
-            search_results.results.push(SearchResult {
-                link: l.clone(),
-                index: index,
-                text: combined_text.clone(),
-                query_index: i,
-            });
-        }
-        l += 1;
-    }
-    let mut result = Vec::new();
-    println!("requested search results: {:?}..{:?}", i, j);
-    if search_results.results.len() > 0 {
-        for l in i..j {
-            if (search_results.results.len() - 1) < l {
-                break;
-            }
-            result.push(search_results.results[l].clone());
-        }
-    }
-    println!("response length: {:?}", result.len());
-    result
-}
-#[tauri::command]
-fn clear_search(search_results: State<SearchResults>) -> bool {
-    println!("unloading search");
-    let mut search_results = search_results.0.lock().unwrap();
-    search_results.results.clear();
-    search_results.last_query = None;
-    return true;
-}
-
-use tauri::api::dialog::blocking::FileDialogBuilder as FileDialogBuilderBlocking;
-use tauri::api::dialog::FileDialogBuilder;
-
-#[tauri::command]
-async fn open_dialog() -> Result<PathBuf, bool> {
-    if let Some(path) = FileDialogBuilderBlocking::new()
-        .add_filter("Word Document", &["docx"])
-        .pick_file()
-    {
-        Ok(path)
-    } else {
-        Err(false)
-    }
-}
-
-#[tauri::command]
-fn get_paras(i: usize, j: usize, paras: State<Paras>) -> Vec<Para> {
-    let paras = paras.0.lock().unwrap();
-    let mut result = Vec::new();
-    println!("requested paragraphs: {:?}..{:?}", i, j);
-    if paras.len() > 0 {
-        for l in i..j {
-            if (paras.len() - 1) < l {
-                break;
-            }
-            result.push(paras[l].clone());
-        }
-    }
-    println!("response length: {:?}", result.len());
-    return result;
-}
-
-#[tauri::command]
-fn get_outline_paras(i: usize, j: usize, outline_paras: State<OutlineParas>) -> Vec<Para> {
-    let outline_paras = outline_paras.0.lock().unwrap();
-    let mut result = Vec::new();
-    println!("requested outline paragraphs: {:?}..{:?}", i, j);
-    if outline_paras.len() > 0 {
-        for l in i..j {
-            if (outline_paras.len() - 1) < l {
-                break;
-            }
-            result.push(outline_paras[l].clone());
-        }
-    }
-    println!("response length: {:?}", result.len());
-    return result;
 }
 
 fn main() {
@@ -360,14 +157,15 @@ fn main() {
             para_texts: Vec::new(),
         })))
         .invoke_handler(tauri::generate_handler![
-            load_file,
-            get_paras,
-            search,
-            clear_search,
-            unload_file,
-            get_outline_paras,
-            open_dialog,
-            get_window_fullscreen_state
+            document_commands::load_file,
+            document_commands::get_paras,
+            document_commands::search,
+            document_commands::clear_search,
+            document_commands::unload_file,
+            document_commands::get_outline_paras,
+            app_commands::open_dialog,
+            app_commands::get_window_fullscreen_state,
+            app_commands::new_window,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run app");

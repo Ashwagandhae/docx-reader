@@ -47,6 +47,7 @@
   async function indexResult(newIndex: number) {
     // if element is loaded
     if (
+      items.length > 0 &&
       newIndex >= items[0].index &&
       newIndex < items[items.length - 1].index
     ) {
@@ -88,40 +89,58 @@
   }
 </script>
 
-{#if $query.length > 0 && showSearchResults}
-  <div class="top" transition:searchAside>
-    <div bind:this={viewerElement} class="viewer">
-      <div class="content">
-        <Loader
-          bind:this={loader}
-          bind:items
-          {viewerElement}
-          {serverCommand}
-          fetchAmount={30}
-        >
-          {#each items as item}
-            <SearchResult
-              link={item.link}
-              index={item.index}
-              text={item.text}
-              queryIndex={item.query_index}
-              selected={item.index == selectedResultIndex}
-              selectSelf={() => select(item.index)}
-            />
-          {/each}
-        </Loader>
+<div class="hider">
+  {#if $query.length > 0}
+    <div class="top" transition:searchAside class:showSearchResults>
+      <div bind:this={viewerElement} class="viewer">
+        <div class="content">
+          <Loader
+            bind:this={loader}
+            bind:items
+            {viewerElement}
+            {serverCommand}
+            fetchAmount={30}
+          >
+            {#each items as item}
+              <SearchResult
+                link={item.link}
+                index={item.index}
+                para={item.para}
+                queryIndex={item.query_index}
+                selected={item.index == selectedResultIndex}
+                selectSelf={() => select(item.index)}
+              />
+            {/each}
+          </Loader>
+        </div>
       </div>
     </div>
-  </div>
-{/if}
+  {/if}
+</div>
 
 <style>
+  .hider {
+    width: inherit;
+    height: inherit;
+    overflow: hidden;
+  }
   .top {
     background-color: var(--back-two);
     width: 100%;
     height: 100vh;
     box-sizing: border-box;
     padding-top: var(--topbar-height);
+    display: block;
+    transition: transform 300ms;
+  }
+  .top.showSearchResults {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+  .top {
+    transform: translateX(100%);
+    pointer-events: none;
   }
   .viewer {
     padding: var(--padding);
