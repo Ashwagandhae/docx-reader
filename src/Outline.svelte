@@ -8,11 +8,8 @@
   let viewerElement: Element;
   let loader: Loader;
   export let showOutline: boolean;
-  export function teleport(index: number) {
-    loader?.teleport(index);
-  }
-  export function reset() {
-    loader?.reset();
+  export function getLoader() {
+    return loader;
   }
   let items = [];
   async function serverCommand(i: number, j: number) {
@@ -28,7 +25,7 @@
     <div bind:this={viewerElement} class="viewer">
       <div class="content">
         <Loader bind:this={loader} bind:items {serverCommand} fetchAmount={30}>
-          {#each items as item (item)}
+          {#each items as item (item.index)}
             <OutlineItem {...item} />
           {/each}
         </Loader>

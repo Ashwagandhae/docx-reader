@@ -5,6 +5,7 @@
   export let serverCommand: (i: number, j: number) => Promise<any[]>;
   export let fetchAmount = 10;
   export let loaderHeight = 500;
+  export let verbose = false;
 
   export let viewerElement: HTMLElement = null;
   let topLoaderElement: HTMLElement;
@@ -29,6 +30,7 @@
 
   let observer = new IntersectionObserver(
     (entries) => {
+      console.log('observer muted: ', muteObserver);
       if (muteObserver) return;
       let shouldLoadBottom = false;
       let shouldLoadTop = false;
@@ -40,8 +42,10 @@
       }
       // prioritize loadBottom first
       if (shouldLoadBottom) {
+        verbose && console.log('bottom loader in view');
         loadBottom();
       } else if (shouldLoadTop) {
+        verbose && console.log('top loader in view');
         loadTop();
       }
       topLoadShowing = shouldLoadTop;
@@ -60,11 +64,12 @@
     }
     observer.observe(topLoaderElement);
     observer.observe(bottomLoaderElement);
-    teleport(0);
+    teleport(0, true);
   });
   async function loadItemsTop(amount: number) {
     let i = Math.max(0, startIndex - amount);
     let j = Math.max(0, startIndex);
+    verbose && console.log('loading: ', i, j);
 
     let newItems: any[] = await serverCommand(i, j);
     startIndex -= newItems.length;
@@ -73,6 +78,7 @@
   async function loadItemsBottom(amount: number) {
     let i = Math.max(0, endIndex);
     let j = Math.max(0, endIndex + amount);
+    verbose && console.log('loading: ', i, j);
     let newItems: any[] = await serverCommand(i, j);
 
     endIndex += newItems.length;
@@ -107,6 +113,7 @@
     }
   }
   async function loadTop() {
+    verbose && console.log('loading top');
     let newItems = await loadItemsTop(fetchAmount);
     if (newItems.length == 0) return;
     // remove out of view items
@@ -128,8 +135,10 @@
     itemsHeightChange += oldHeight - itemsElement.clientHeight;
     viewerElement.scrollTop -= itemsHeightChange;
     await extendItemsTop();
+    verbose && console.log(items);
   }
   async function loadBottom() {
+    verbose && console.log('loading bottom');
     let newItems = await loadItemsBottom(fetchAmount);
     if (newItems.length == 0) return;
     // remove out of view items
@@ -152,24 +161,53 @@
     await tick();
     viewerElement.scrollTop += itemsHeightChange;
     await extendItemsBottom();
+    verbose && console.log(items);
   }
+
   // prevent teleports from being called at the same time
-  // let teleportQueue = [];
-  // export async function teleport(index: number, force?: boolean) {
-  //   // if teleportQueue is empty, start a new chain
-  //   if (teleportQueue.length == 0) {
-  //     teleportChain(index, force);
-  //   } else {
-  //     // add args to queue
-  //     let args = {
-  //       index: index,
-  //       force: force,
-  //     };
-  //     teleportQueue.push(args);
-  //   }
-  // }
-  export async function teleport(index: number, force?: boolean) {
-    muteObserver = true;
+  let teleportQueue = [];
+  export function teleport(index: number, force?: boolean) {
+    let args = {
+      index,
+      force,
+    };
+    teleportQueue.push(args);
+    verbose &&
+      console.log('teleport queue increased to: ', teleportQueue.length);
+    // if teleportQueue was empty, start a new chain
+    if (teleportQueue.length == 1) {
+      teleportChain(args.index, args.force);
+    }
+  }
+  let teleportDoneCallbacks = [];
+  export function onTeleportDone(callback: () => void) {
+    // if teleportQueue empty, teleport is done
+    if (teleportQueue.length == 0) {
+      callback();
+    } else {
+      // add callback to queue
+      teleportDoneCallbacks.push(callback);
+    }
+  }
+  async function teleportChain(index: number, force?: boolean) {
+    await pureTeleport(index, force);
+    teleportQueue.shift();
+    verbose &&
+      console.log('teleport queue decreased to: ', teleportQueue.length);
+    // if there are more teleports in the queue, call them
+    if (teleportQueue.length > 0) {
+      let args = teleportQueue[0];
+      teleportChain(args.index, args.force);
+    } else {
+      // if there are no more teleports in the queue, call teleportDoneCallbacks
+      for (let callback of teleportDoneCallbacks) {
+        callback();
+      }
+      teleportDoneCallbacks = [];
+    }
+  }
+  export async function pureTeleport(index: number, force?: boolean) {
+    verbose && console.log('teleporting to: ', index);
     if (!force && items.length > 0 && index >= startIndex && index < endIndex) {
       // if this forces it to load anything, just do normal teleport
       let item = itemsElement.children[index - startIndex] as HTMLElement;
@@ -181,18 +219,29 @@
           bottomLoaderElement.offsetTop
         )
       ) {
+        console.log('doing fake teleport');
+        console.trace();
         viewerElement.scrollTop = item.offsetTop;
-        return;
+        return true;
       }
     }
+    console.log('doing real teleport');
+    muteObserver = true;
+    verbose && console.log('muting obvservers');
     reset();
-    // loadbottom without observers noticing, so loadBottom doesn't get called twice
     startIndex = index;
     endIndex = index;
     await loadBottom();
-    viewerElement.scrollTop = loaderHeight + 1;
-    await tick();
+    // defaults to top of loader
+    viewerElement.scrollTop =
+      Math.max(
+        (itemsElement.children[0] as HTMLElement)?.offsetTop,
+        loaderHeight
+      ) + 1;
+    console.log('set viewer scrollTop: ', viewerElement.scrollTop);
     muteObserver = false;
+    verbose && console.log('unmuting obvservers');
+    return true;
   }
 </script>
 

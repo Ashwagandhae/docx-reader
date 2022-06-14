@@ -124,17 +124,17 @@ pub fn search(
   let last_result = search_results.results.last();
   let mut l = 0;
   if last_result.is_some() {
-    l = last_result.unwrap().link + 1;
+    l = last_result.unwrap().para.index + 1;
   }
   while search_results.results.len() < j && l < paras.len() {
-    let combined_text = search_results.para_texts[l].clone();
-    for i in 0..combined_text.to_lowercase().matches(&query).count() {
+    let combined_text = &search_results.para_texts[l];
+    for k in 0..combined_text.to_lowercase().matches(&query).count() {
       let index = search_results.results.len();
       search_results.results.push(SearchResult {
         link: l.clone(),
         index: index,
         para: paras[l].clone(),
-        query_index: i,
+        query_index: k,
       });
     }
     l += 1;

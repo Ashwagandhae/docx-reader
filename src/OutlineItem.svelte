@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { RunType } from './types';
   import { getContext } from 'svelte';
+  import type Loader from './Loader.svelte';
 
   export let outline_level: number = 0;
   $: indent = Math.min(outline_level, 3);
@@ -13,10 +14,15 @@
       text += run.text;
     }
   }
-  let teleport: (index: number) => void = getContext('teleport');
+  let getDocLoader: () => Loader = getContext('getDocLoader');
 </script>
 
-<li style={`margin-left: ${indent}em`} on:click={() => teleport(index)}>
+<li
+  style={`margin-left: ${indent}em`}
+  on:click={() => {
+    getDocLoader().teleport(index);
+  }}
+>
   <span class:bold={indent < 3} class:big={indent < 2}>
     {text}
   </span>

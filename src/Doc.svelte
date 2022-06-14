@@ -13,18 +13,15 @@
   } from './selection';
 
   let query: Writable<string> = getContext('query');
+  let zoom: Writable<number> = getContext('zoom');
 
   export let showOutline: boolean;
   export let showSearchResults: boolean;
 
   let viewerElement: HTMLElement;
   let loader: Loader;
-  export async function teleport(index: number) {
-    // if charindex isnt null
-    loader?.teleport(index);
-  }
-  export function reset() {
-    loader?.reset();
+  export function getLoader() {
+    return loader;
   }
   let items = [];
   async function serverCommand(i: number, j: number) {
@@ -33,12 +30,11 @@
       j,
     })) as (ParaType & { charIndex?: number })[];
   }
-  let zoom = 1;
-  async function handleZoom(event: WheelEvent) {
+  async function handle$zoom(event: WheelEvent) {
     if (event.ctrlKey) {
       event.preventDefault();
-      zoom -= event.deltaY * 0.01;
-      zoom = Math.max(Math.min(zoom, 8), 0.3);
+      $zoom -= event.deltaY * 0.01;
+      $zoom = Math.max(Math.min($zoom, 8), 0.3);
       let ratio =
         (viewerElement.scrollTop + viewerElement.clientHeight / 2) /
         viewerElement.scrollHeight;
@@ -70,8 +66,8 @@
     if (e.metaKey) {
       if (e.key === '=') {
         e.preventDefault();
-        zoom += 0.1;
-        zoom = Math.max(Math.min(zoom, 8), 0.3);
+        $zoom += 0.1;
+        $zoom = Math.max(Math.min($zoom, 8), 0.3);
         let ratio =
           (viewerElement.scrollTop + viewerElement.clientHeight / 2) /
           viewerElement.scrollHeight;
@@ -80,8 +76,8 @@
       } else if (e.key === '-') {
         e.preventDefault();
 
-        zoom -= 0.1;
-        zoom = Math.max(Math.min(zoom, 8), 0.3);
+        $zoom -= 0.1;
+        $zoom = Math.max(Math.min($zoom, 8), 0.3);
         let ratio =
           (viewerElement.scrollTop + viewerElement.clientHeight / 2) /
           viewerElement.scrollHeight;
@@ -138,15 +134,14 @@
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
-<div class="topbar" />
 <div
   class="viewer"
-  on:wheel={handleZoom}
+  on:wheel={handle$zoom}
   bind:this={viewerElement}
   class:showOutline
   class:showSearchResults={showSearchResults && $query.length > 0}
 >
-  <div class="content" style={`font-size: ${zoom * 16}px;`}>
+  <div class="content" style={`font-size: ${$zoom * 16}px;`}>
     <div class="paras-container">
       <div class="paras" bind:this={parasElement}>
         <Loader bind:this={loader} bind:items {viewerElement} {serverCommand}>

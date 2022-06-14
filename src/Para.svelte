@@ -41,9 +41,9 @@
 
     let matches = [];
     if ($query.length > 0) {
-      matches = [...combinedText.matchAll(new RegExp($query, 'gi'))].map(
-        (a) => a.index
-      );
+      matches = [
+        ...combinedText.toLowerCase().matchAll(new RegExp($query, 'gi')),
+      ].map((a) => a.index);
     }
     let i = 0;
     for (let run of runs) {
@@ -111,7 +111,7 @@
   let loading = false;
 </script>
 
-<div class="top">
+<div class="top" on:click={() => console.log(index)}>
   <div class="buttons-container">
     <div class="buttons" class:loading>
       <Button
@@ -133,7 +133,11 @@
       </Button>
     </div>
   </div>
-  <svelte:element this={elementType} class="para">
+  <svelte:element
+    this={elementType}
+    class="para"
+    on:click={() => console.log(index)}
+  >
     {#each displayRuns as run}
       <Run
         text={run.text}
@@ -191,6 +195,6 @@
     word-break: break-word;
     margin: 0;
     padding: 0;
-    padding-bottom: 2em;
+    padding-top: 2em;
   }
 </style>

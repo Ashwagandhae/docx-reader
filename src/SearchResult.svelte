@@ -1,6 +1,7 @@
 <script lang="ts">
   import SearchResultRun from './SearchResultRun.svelte';
   import type { ParaType } from './types';
+  import type Loader from './Loader.svelte';
 
   import { getContext, onMount } from 'svelte';
   import type { Writable } from 'svelte/store';
@@ -60,8 +61,8 @@
   }
   let element: HTMLElement;
   function doTeleport() {
-    teleport(link);
-    selectedQuery.set({ paraIndex: link, charIndex: charIndex });
+    getDocLoader().teleport(para.index);
+    selectedQuery.set({ paraIndex: para.index, charIndex: charIndex });
   }
   $: {
     if (selected) {
@@ -77,7 +78,7 @@
     }
   }
 
-  let teleport: (index: number) => void = getContext('teleport');
+  let getDocLoader: () => Loader = getContext('getDocLoader');
 </script>
 
 <li

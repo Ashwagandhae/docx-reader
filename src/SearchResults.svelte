@@ -13,11 +13,8 @@
   let loader: Loader;
   let query: Writable<string> = getContext('query');
 
-  export function teleport(index: number) {
-    loader?.teleport(index);
-  }
-  export function reset() {
-    loader?.reset();
+  export function getLoader() {
+    return loader;
   }
   async function serverCommand(i: number, j: number) {
     if ($query.length > 0) {
@@ -46,38 +43,39 @@
   let items = [];
   async function indexResult(newIndex: number) {
     // if element is loaded
-    if (
-      items.length > 0 &&
-      newIndex >= items[0].index &&
-      newIndex < items[items.length - 1].index
-    ) {
-      let element = loader.getItemsElement().children[
-        newIndex - items[0].index
-      ] as HTMLElement;
-      // if its out of view
-      if (
-        element &&
-        (element.offsetTop < viewerElement.scrollTop ||
-          element.offsetTop + element.offsetHeight >
-            viewerElement.scrollTop + viewerElement.clientHeight)
-      ) {
-        // teleport to it
-        await loader.teleport(newIndex);
-        select(newIndex);
-      } else {
-        // else just select it
-        select(newIndex);
-      }
-    } else {
-      // else teleport to it
-      await loader.teleport(newIndex);
-      // if that was the last item, select the one before it
-      if (items.length == 0) {
-        newIndex -= 1;
-        await loader.teleport(newIndex);
-      }
+    // if (
+    //   items.length > 0 &&
+    //   newIndex >= items[0].index &&
+    //   newIndex < items[items.length - 1].index
+    // ) {
+    //   let element = loader.getItemsElement().children[
+    //     newIndex - items[0].index
+    //   ] as HTMLElement;
+    //   // if its out of view
+    //   if (
+    //     element &&
+    //     (element.offsetTop < viewerElement.scrollTop ||
+    //       element.offsetTop + element.offsetHeight >
+    //         viewerElement.scrollTop + viewerElement.clientHeight)
+    //   ) {
+    //     // teleport to it
+    //     await loader.teleport(newIndex);
+    //     select(newIndex);
+    //   } else {
+    //     // else just select it
+    //     select(newIndex);
+    //   }
+    // } else {
+    // else teleport to it
+    loader.teleport(newIndex);
+    // if that was the last item, select the one before it
+    // if (items.length == 0) {
+    //   newIndex -= 1;
+    //   await loader.teleport(newIndex);
+    // }
+    loader.onTeleportDone(function () {
       select(newIndex);
-    }
+    });
   }
   export function prevResult() {
     if (selectedResultIndex > 0) {
@@ -100,8 +98,9 @@
             {viewerElement}
             {serverCommand}
             fetchAmount={30}
+            verbose={true}
           >
-            {#each items as item}
+            {#each items as item (item.index)}
               <SearchResult
                 link={item.link}
                 index={item.index}

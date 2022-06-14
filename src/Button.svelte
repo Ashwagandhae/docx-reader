@@ -3,7 +3,12 @@
   export let disabled = false;
 </script>
 
-<button on:click class:background {disabled}>
+<button
+  on:click
+  on:mousedown|preventDefault={() => {}}
+  class:background
+  {disabled}
+>
   <slot />
 </button>
 

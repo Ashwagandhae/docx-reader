@@ -82,12 +82,13 @@ export function getSelectionString(
     paraIndex++;
   }
   // if no end, just set to last item
-  if (!selectPos.end.para) {
+  if (selectPos.end.para == null) {
     selectPos.end.para = items.length - 1;
     selectPos.end.run = items[selectPos.end.para].runs.length - 1;
     selectPos.end.offset =
       items[selectPos.end.para].runs[selectPos.end.run].text.length;
   }
+  console.log(selectPos);
   let ret = document.createElement('div');
   for (let i = selectPos.start.para; i < selectPos.end.para + 1; i++) {
     let para = items[i];

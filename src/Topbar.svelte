@@ -13,6 +13,7 @@
   export let showSearchResults: boolean;
 
   let query: Writable<string> = getContext('query');
+  let zoom: Writable<number> = getContext('zoom');
   let isResizing: Writable<boolean> = getContext('isResizing');
   let fileInfo: Writable<{ open: boolean; name: string; path: string }> =
     getContext('fileInfo');
@@ -34,15 +35,25 @@
       <TurningArrow direction={showOutline ? 'left' : 'right'} />
     </Button>
   </section>
-  <section class="middle" class:open={$fileInfo.open} data-tauri-drag-region>
-    <h1>
-      {#if $fileInfo.open}
-        {$fileInfo.name}
-      {:else}
-        No open file
-      {/if}
-    </h1>
-    <Button on:click={chooseFile}>Open</Button>
+  <section class="general" class:open={$fileInfo.open} data-tauri-drag-region>
+    <div class="start" data-tauri-drag-region>
+      <Button on:click={() => ($zoom += 0.1)} background={false}
+        ><Icon name="magnifyGlassPlus" /></Button
+      >
+      <Button on:click={() => ($zoom -= 0.1)} background={false}
+        ><Icon name="magnifyGlassMinus" /></Button
+      >
+    </div>
+    <div class="center" data-tauri-drag-region>
+      <h1>
+        {#if $fileInfo.open}
+          {$fileInfo.name}
+        {:else}
+          No open file
+        {/if}
+      </h1>
+      <Button on:click={chooseFile}>Open</Button>
+    </div>
   </section>
   <section class="search" data-tauri-drag-region>
     <Search placeholder={'Search'} />
@@ -105,21 +116,32 @@
   .isResizing .outline {
     transition: none;
   }
-  .middle {
+  section.general {
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    align-items: center;
     justify-content: center;
-    min-width: 0;
-    overflow: hidden;
+    width: 100%;
   }
-  .search {
-    min-width: 0;
-    overflow: hidden;
+  section.general > .start {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
   }
-  .search-buttons {
-    position: absolute;
-    right: var(--padding-small);
-    border-radius: var(--border-radius);
+  section.general > .center {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    height: inherit;
+    padding: var(--padding-small);
+    box-sizing: border-box;
+    width: 100%;
+    gap: var(--padding);
   }
+
   h1 {
     font-size: 1em;
     font-weight: 400;
@@ -130,5 +152,14 @@
   .open h1 {
     color: var(--text-strong);
     font-weight: var(--bold);
+  }
+  .search {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .search-buttons {
+    position: absolute;
+    right: var(--padding-small);
+    border-radius: var(--border-radius);
   }
 </style>

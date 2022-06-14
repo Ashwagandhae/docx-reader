@@ -15,7 +15,6 @@
   let colorThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   let updateColorTheme = function () {
     document.body.classList.toggle('dark', colorThemeMediaQuery.matches);
-    alert(colorThemeMediaQuery.matches);
   };
   updateColorTheme();
   colorThemeMediaQuery.addEventListener('change', updateColorTheme);
@@ -60,15 +59,12 @@
     };
     // set title of window
     appWindow.setTitle($fileInfo.name);
-    doc.teleport(0);
-    outline.teleport(0);
-    searchResults?.teleport(0);
+    doc.getLoader().teleport(0, true);
+    outline.getLoader().teleport(0, true);
+    searchResults?.getLoader().teleport(0, true);
   }
   async function closeFile() {
     await Promise.all([invoke('unload_file'), invoke('clear_search')]);
-    outline.reset();
-    doc.reset();
-    searchResults && searchResults?.reset();
     $fileInfo = {
       open: false,
       path: '',
@@ -84,10 +80,10 @@
   });
   setContext('selectedQuery', selectedQuery);
 
-  function teleport(index: number) {
-    doc.teleport(index);
+  function getDocLoader() {
+    return doc.getLoader();
   }
-  setContext('teleport', teleport);
+  setContext('getDocLoader', getDocLoader);
 
   let doc: Doc;
   let outline: Outline;
@@ -127,6 +123,8 @@
       }
     }
   }
+  let zoom = writable(1);
+  setContext('zoom', zoom);
 </script>
 
 <svelte:window on:resize={resizeHandler} on:keydown={handleKeyDown} />
@@ -232,8 +230,10 @@
     --back-two-active: hsl(0, 0%, 34%);
     --back-highlight: hsl(195, 20%, 30%);
 
-    --back-mark: hsl(52, 76%, 30%);
-    --back-mark-selected: hsl(30, 80%, 40%);
+    --back-mark-c: 52, 76%, 30%;
+    --back-mark: hsl(var(--back-mark-c));
+    --back-mark-selected-c: 30, 80%, 40%;
+    --back-mark-selected: hsl(var(--back-mark-selected-c));
 
     --text: hsl(0, 0%, 75%);
     --text-weak: hsl(0, 0%, 50%);
@@ -249,8 +249,10 @@
     --back-two-active: hsl(0, 0%, 80%);
     --back-highlight: hsl(195, 100%, 80%);
 
-    --back-mark: hsl(60, 100%, 69%);
-    --back-mark-selected: hsl(40, 100%, 59%);
+    --back-mark-c: 60, 100%, 69%;
+    --back-mark: hsl(var(--back-mark-c));
+    --back-mark-selected-c: 40, 100%, 59%;
+    --back-mark-selected: hsl(var(--back-mark-selected-c));
 
     --text: hsl(0, 0%, 30%);
     --text-weak: hsl(0, 0%, 50%);

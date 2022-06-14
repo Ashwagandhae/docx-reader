@@ -1,11 +1,6 @@
 import { quadIn } from 'svelte/easing';
 import { crossfade } from 'svelte/transition';
 export function selectMark(node: HTMLElement, { delay = 0, duration = 500 }) {
-  node.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start',
-    inline: 'nearest',
-  });
   return {
     delay,
     duration,
