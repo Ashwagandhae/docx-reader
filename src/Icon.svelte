@@ -110,6 +110,12 @@
 <path d="M72 73L80.5 81.5L89 90" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path fill-rule="evenodd" clip-rule="evenodd" d="M42 61C42 63.7614 44.2386 66 47 66C49.7614 66 52 63.7614 52 61V51H62C64.7614 51 67 48.7614 67 46C67 43.2386 64.7614 41 62 41H52V31C52 28.2386 49.7614 26 47 26C44.2386 26 42 28.2386 42 31V41H32C29.2386 41 27 43.2386 27 46C27 48.7614 29.2386 51 32 51H42V61Z" fill="currentColor"/>`,
     },
+    {
+      name: 'link',
+      svg: `<path d="M42.929 71.2132L53.5356 81.8198C61.3461 89.6303 74.0094 89.6303 81.8199 81.8198V81.8198C89.6304 74.0093 89.6304 61.346 81.8199 53.5355L71.2133 42.9289" stroke-width="10" stroke-linecap="round"/>
+<path d="M28.7868 57.0711L18.1802 46.4645C10.3697 38.654 10.3697 25.9907 18.1802 18.1802V18.1802C25.9907 10.3697 38.654 10.3697 46.4645 18.1802L57.0711 28.7868" stroke-width="10" stroke-linecap="round"/>
+<path d="M37.272 37.2721L63.0814 63.0815" stroke-width="10" stroke-linecap="round"/>`,
+    },
   ];
   let displayIcon: { name: string; svg: string };
   function findIcon() {

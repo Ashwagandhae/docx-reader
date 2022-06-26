@@ -1,7 +1,9 @@
 use crate::document::Document;
+use crate::document::OutlinePara;
 use crate::document::Para;
 
 use serde::{Deserialize, Serialize};
+use std::cmp;
 use std::sync::Mutex;
 use tauri::State;
 
@@ -14,7 +16,7 @@ pub struct SearchResult {
 }
 
 pub struct Paras(pub Mutex<Vec<Para>>);
-pub struct OutlineParas(pub Mutex<Vec<Para>>);
+pub struct OutlineParas(pub Mutex<Vec<OutlinePara>>);
 pub struct SearchResultsState {
   pub results: Vec<SearchResult>,
   pub last_query: Option<String>,
@@ -179,7 +181,11 @@ pub fn get_paras(i: usize, j: usize, paras: State<Paras>) -> Vec<Para> {
 }
 
 #[tauri::command]
-pub fn get_outline_paras(i: usize, j: usize, outline_paras: State<OutlineParas>) -> Vec<Para> {
+pub fn get_outline_paras(
+  i: usize,
+  j: usize,
+  outline_paras: State<OutlineParas>,
+) -> Vec<OutlinePara> {
   let outline_paras = outline_paras.0.lock().unwrap();
   let mut result = Vec::new();
   println!("requested outline paragraphs: {:?}..{:?}", i, j);
@@ -193,4 +199,64 @@ pub fn get_outline_paras(i: usize, j: usize, outline_paras: State<OutlineParas>)
   }
   println!("response length: {:?}", result.len());
   return result;
+}
+#[tauri::command]
+pub fn get_nearest_outline_para(
+  para_index: usize,
+  outline_paras: State<OutlineParas>,
+  paras: State<Paras>,
+) -> Option<OutlinePara> {
+  let outline_paras = outline_paras.0.lock().unwrap();
+  let paras = paras.0.lock().unwrap();
+  // get the ratio position in paras as a starting point
+  // so you minimize the amount you loop
+  // theoretically you could still loop through all elements if outline elements are spaced unevenly
+  // but this assumes normal data
+  println!("finding nearest outline para to: {:?}", para_index);
+  let start_index: usize = cmp::min(
+    outline_paras.len() - 2,
+    cmp::max(1, (para_index * outline_paras.len()) / paras.len()),
+  );
+  let start_outline_para = &outline_paras[start_index];
+  let mut result: Option<OutlinePara> = None;
+  println!(
+    "starting at outline para: {:?}, with link: {:?}",
+    start_index, start_outline_para.link
+  );
+  // find out which direction to go
+  if start_outline_para.link >= para_index {
+    println!("go backwards");
+    // go backwards
+    for i in (0..start_index).rev() {
+      if outline_paras[i].link <= para_index {
+        result = Some(outline_paras[i].clone());
+        break;
+      }
+    }
+  } else {
+    println!("go forwards");
+    for i in start_index..outline_paras.len() {
+      if outline_paras[i].link > para_index && i > 1 {
+        result = Some(outline_paras[i - 1].clone());
+        break;
+      } else if outline_paras[i].link == para_index {
+        result = Some(outline_paras[i].clone());
+        break;
+      }
+      // if nothing worked assume it was the last
+      if outline_paras.last().is_some() {
+        result = Some(outline_paras.last().unwrap().clone());
+      }
+    }
+  }
+  if result.is_some() {
+    println!(
+      "found outline_para: {:?}, with link: {:?}",
+      result.clone().unwrap().index,
+      result.clone().unwrap().link
+    )
+  } else {
+    println!("didn't find outline_para");
+  }
+  result
 }

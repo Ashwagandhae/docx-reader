@@ -11,6 +11,7 @@
     copyToClipboard,
     getParaHTML,
   } from './selection';
+  import { register } from './shortcut';
 
   let query: Writable<string> = getContext('query');
   let zoom: Writable<number> = getContext('zoom');
@@ -30,7 +31,7 @@
       j,
     })) as (ParaType & { charIndex?: number })[];
   }
-  async function handle$zoom(event: WheelEvent) {
+  async function handleZoom(event: WheelEvent) {
     if (event.ctrlKey) {
       event.preventDefault();
       $zoom -= event.deltaY * 0.01;
@@ -62,33 +63,27 @@
       }
     }
   });
-  function handleKeyDown(e: KeyboardEvent) {
-    if (e.metaKey) {
-      if (e.key === '=') {
-        e.preventDefault();
-        $zoom += 0.1;
-        $zoom = Math.max(Math.min($zoom, 8), 0.3);
-        let ratio =
-          (viewerElement.scrollTop + viewerElement.clientHeight / 2) /
-          viewerElement.scrollHeight;
-        viewerElement.scrollTop =
-          viewerElement.scrollHeight * ratio - viewerElement.clientHeight / 2;
-      } else if (e.key === '-') {
-        e.preventDefault();
-
-        $zoom -= 0.1;
-        $zoom = Math.max(Math.min($zoom, 8), 0.3);
-        let ratio =
-          (viewerElement.scrollTop + viewerElement.clientHeight / 2) /
-          viewerElement.scrollHeight;
-        viewerElement.scrollTop =
-          viewerElement.scrollHeight * ratio - viewerElement.clientHeight / 2;
-      } else if (e.key === 'c') {
-        e.preventDefault();
-        copyToClipboard(getSelectionString(parasElement, items));
-      }
-    }
-  }
+  register('CommandOrControl+=', function () {
+    $zoom += 0.1;
+    $zoom = Math.max(Math.min($zoom, 8), 0.3);
+    let ratio =
+      (viewerElement.scrollTop + viewerElement.clientHeight / 2) /
+      viewerElement.scrollHeight;
+    viewerElement.scrollTop =
+      viewerElement.scrollHeight * ratio - viewerElement.clientHeight / 2;
+  });
+  register('CommandOrControl+-', function () {
+    $zoom -= 0.1;
+    $zoom = Math.max(Math.min($zoom, 8), 0.3);
+    let ratio =
+      (viewerElement.scrollTop + viewerElement.clientHeight / 2) /
+      viewerElement.scrollHeight;
+    viewerElement.scrollTop =
+      viewerElement.scrollHeight * ratio - viewerElement.clientHeight / 2;
+  });
+  register('CommandOrControl+c', function () {
+    copyToClipboard(getSelectionString(parasElement, items));
+  });
 
   $: {
     if (showSearchResults && $query.length > 0 && !showOutline) {
@@ -131,12 +126,16 @@
     }
     copyToClipboard(ret.innerHTML);
   }
+  function canRemoveItem(_: any, itemElement: HTMLElement) {
+    const selection = window.getSelection();
+    return !(selection.rangeCount && selection.containsNode(itemElement, true));
+  }
 </script>
 
-<svelte:window on:keydown={handleKeyDown} />
+<svelte:window />
 <div
   class="viewer"
-  on:wheel={handle$zoom}
+  on:wheel={handleZoom}
   bind:this={viewerElement}
   class:showOutline
   class:showSearchResults={showSearchResults && $query.length > 0}
@@ -144,15 +143,24 @@
   <div class="content" style={`font-size: ${$zoom * 16}px;`}>
     <div class="paras-container">
       <div class="paras" bind:this={parasElement}>
-        <Loader bind:this={loader} bind:items {viewerElement} {serverCommand}>
-          {#each items as item, index (item.index)}
-            <Para
-              {...item}
-              {viewerElement}
-              copySelfAndChildren={() => copyParaAndChildren(index)}
-            />
-          {/each}
-        </Loader>
+        {#if viewerElement}
+          <Loader
+            bind:this={loader}
+            bind:items
+            {viewerElement}
+            {serverCommand}
+            {canRemoveItem}
+            shouldTrackFocus={true}
+          >
+            {#each items as item, index (item.index)}
+              <Para
+                {...item}
+                {viewerElement}
+                copySelfAndChildren={() => copyParaAndChildren(index)}
+              />
+            {/each}
+          </Loader>
+        {/if}
       </div>
     </div>
   </div>
@@ -186,6 +194,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    transition: padding var(--transition-speed);
   }
   .showOutline.showSearchResults .paras-container {
     width: min(calc(100vw - var(--sidebar-width)));

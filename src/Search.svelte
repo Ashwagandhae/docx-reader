@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
+  import { register } from './shortcut';
 
   export let placeholder = '';
   let query: Writable<string> = getContext('query');
@@ -37,15 +38,10 @@
     }
   }
   let textarea: HTMLElement;
-  function handleBodyKeyDown(event: KeyboardEvent) {
-    // if cmd + f
-    // todo detect windows and mac
-    if (event.key === 'f' && event.metaKey) {
-      event.preventDefault();
-      event.stopPropagation();
-      textarea.focus();
-    }
-  }
+  register('CommandOrControl+F', () => {
+    textarea.focus();
+  });
+
   $: {
     if ($selectedQuery.paraIndex != null) {
       textarea.focus();
@@ -64,7 +60,6 @@
   $: value, onValueUpdate();
 </script>
 
-<svelte:body on:keydown={handleBodyKeyDown} />
 <textarea
   bind:this={textarea}
   {placeholder}

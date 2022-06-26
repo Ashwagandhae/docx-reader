@@ -10,6 +10,9 @@
   import { listen } from '@tauri-apps/api/event';
   import { setContext } from 'svelte';
   import { writable } from 'svelte/store';
+  import { register } from './shortcut';
+  import type { OutlineParaType, ParaType } from './types';
+  import type { Writable } from 'svelte/store';
 
   // listen for changes in system settings
   let colorThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -60,8 +63,8 @@
     // set title of window
     appWindow.setTitle($fileInfo.name);
     doc.getLoader().teleport(0, true);
-    outline.getLoader().teleport(0, true);
-    searchResults?.getLoader().teleport(0, true);
+    outline?.getLoader()?.teleport(0, true);
+    searchResults?.getLoader()?.teleport(0, true);
   }
   async function closeFile() {
     await Promise.all([invoke('unload_file'), invoke('clear_search')]);
@@ -115,19 +118,26 @@
     searchResults?.nextResult();
   }
   setContext('nextResult', nextResult);
-  function handleKeyDown(event: KeyboardEvent) {
-    if (event.metaKey) {
-      if (event.key == 'n') {
-        event.preventDefault();
-        invoke('new_window', {});
-      }
+  register('CommandOrControl+N', () => {
+    invoke('new_window', {});
+  });
+
+  async function alignOutlineFocus() {
+    let docFocus: ParaType = doc.getLoader().getFocus();
+    let para: OutlineParaType = await invoke('get_nearest_outline_para', {
+      paraIndex: docFocus.index,
+    });
+    console.log('outline aligning to: ', para);
+    if (para) {
+      outline.getLoader().teleport(para.index);
     }
   }
+
   let zoom = writable(1);
   setContext('zoom', zoom);
 </script>
 
-<svelte:window on:resize={resizeHandler} on:keydown={handleKeyDown} />
+<svelte:window on:resize={resizeHandler} />
 <main>
   {#if droppingFile}
     <div class="screen" transition:fade={{ duration: 200 }}>
@@ -136,7 +146,12 @@
   {/if}
 
   <div class="topbar">
-    <Topbar bind:showOutline bind:showSearchResults {chooseFile} />
+    <Topbar
+      bind:showOutline
+      bind:showSearchResults
+      {chooseFile}
+      {alignOutlineFocus}
+    />
   </div>
   <div class="doc">
     <Doc bind:this={doc} {showOutline} {showSearchResults} />

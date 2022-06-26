@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 use tauri::api::dialog::blocking::FileDialogBuilder as FileDialogBuilderBlocking;
-use tauri::{AppHandle, Manager, Runtime, Window, WindowBuilder, WindowUrl};
+use tauri::{Runtime, Window, WindowBuilder, WindowUrl};
 
 use cocoa::appkit::NSWindowTitleVisibility;
 use cocoa::appkit::{NSWindow, NSWindowStyleMask};
@@ -65,3 +65,12 @@ pub async fn new_window(window: Window) -> Result<(), ()> {
   win.set_transparent_titlebar(true);
   Ok(())
 }
+// #[tauri::command]
+// pub async fn close_splashscreen(window: tauri::Window) {
+//   // Close splashscreen
+//   if let Some(splashscreen) = window.get_window("splashscreen") {
+//     splashscreen.close().unwrap();
+//   }
+//   // Show main window
+//   window.get_window("main").unwrap().show().unwrap();
+// }

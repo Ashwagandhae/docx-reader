@@ -15,6 +15,7 @@ use document_commands::{OutlineParas, Paras, SearchResults, SearchResultsState};
 
 use std::sync::Mutex;
 
+use tauri::api::shell::open;
 use tauri::AboutMetadata;
 use tauri::Manager;
 use tauri::{CustomMenuItem, Menu, MenuItem, Submenu};
@@ -58,8 +59,6 @@ impl<R: Runtime> WindowExt for Window<R> {
 }
 
 fn main() {
-    let open_menu_item = CustomMenuItem::new("open".to_string(), "Open");
-
     let menu = Menu::new()
         .add_submenu(Submenu::new(
             "Docx Reader",
@@ -86,7 +85,8 @@ fn main() {
             // todo make windows compatable
             Menu::new()
                 .add_native_item(MenuItem::CloseWindow)
-                .add_item(open_menu_item), // Menu::new().add_native_item(MenuItem::Quit)
+                .add_item(CustomMenuItem::new("open".to_string(), "Open"))
+                .add_native_item(MenuItem::Quit),
         ))
         .add_submenu(Submenu::new("Edit", {
             let mut menu = Menu::new();
@@ -107,21 +107,19 @@ fn main() {
             "View",
             Menu::new().add_native_item(MenuItem::EnterFullScreen),
         ))
+        .add_submenu(Submenu::new("Window", {
+            let mut menu = Menu::new();
+            menu = menu.add_native_item(MenuItem::Minimize);
+            menu = menu.add_native_item(MenuItem::Zoom);
+            menu = menu.add_native_item(MenuItem::CloseWindow);
+            menu
+        }))
         .add_submenu(Submenu::new(
-            "Window",
+            "Help",
             Menu::new()
-                .add_native_item(MenuItem::Minimize)
-                .add_native_item(MenuItem::Zoom)
-                // todo make windows compatable
-                .add_native_item(MenuItem::Separator),
+                // should open url when clicked:
+                .add_item(CustomMenuItem::new("learn more".to_string(), "Learn more")),
         ));
-    // todo add help
-    // .add_submenu(Submenu::new(
-    //     "Help",
-    //     Menu::new()
-    //         // should open url when clicked:
-    //         .add_item(MenuItem::Url("Learn More", url)),
-    // ));
 
     tauri::Builder::default()
         .setup(|app| {
@@ -147,6 +145,18 @@ fn main() {
                             .unwrap()
                     }
                 }),
+            "learn more" => {
+                match open(
+                    &(event.window()).shell_scope(),
+                    "https://github.com/Ashwagandhae/docx-reader",
+                    None,
+                ) {
+                    Ok(()) => (),
+                    Err(e) => {
+                        println!("Couldn't open URL: {}", e);
+                    }
+                }
+            }
             _ => {}
         })
         .manage(Paras(Mutex::new(Vec::new())))
@@ -163,6 +173,7 @@ fn main() {
             document_commands::clear_search,
             document_commands::unload_file,
             document_commands::get_outline_paras,
+            document_commands::get_nearest_outline_para,
             app_commands::open_dialog,
             app_commands::get_window_fullscreen_state,
             app_commands::new_window,

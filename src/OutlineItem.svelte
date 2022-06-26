@@ -3,10 +3,11 @@
   import { getContext } from 'svelte';
   import type Loader from './Loader.svelte';
 
-  export let outline_level: number = 0;
-  $: indent = Math.min(outline_level, 3);
-  export let index: number;
+  export let outlineLevel: number = 0;
+  $: indent = Math.min(outlineLevel, 3);
+  export let link: number;
   export let runs: RunType[];
+  export let selected: boolean = false;
   let text = '';
   $: {
     text = '';
@@ -20,8 +21,9 @@
 <li
   style={`margin-left: ${indent}em`}
   on:click={() => {
-    getDocLoader().teleport(index);
+    getDocLoader().teleport(link);
   }}
+  class:selected
 >
   <span class:bold={indent < 3} class:big={indent < 2}>
     {text}
@@ -37,7 +39,8 @@
     min-height: 1em;
     font-size: 0.8em;
   }
-  li:hover {
+  li:hover,
+  li.selected {
     background-color: var(--back-two-hover);
   }
   li:active {

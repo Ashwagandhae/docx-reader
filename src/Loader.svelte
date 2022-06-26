@@ -1,12 +1,15 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
+  import { onMount, onDestroy, tick, getContext } from 'svelte';
+  import { writable } from 'svelte/store';
 
-  export let items: any;
+  export let items: any[];
   export let serverCommand: (i: number, j: number) => Promise<any[]>;
+  export let canRemoveItem = (item: any, itemElement: HTMLElement) => true;
   export let fetchAmount = 10;
   export let loaderHeight = 500;
-  export let verbose = false;
+  export let shouldTrackFocus = false;
 
+  export let verbose = false;
   export let viewerElement: HTMLElement = null;
   let topLoaderElement: HTMLElement;
   let bottomLoaderElement: HTMLElement;
@@ -17,6 +20,7 @@
   let muteObserver = false;
   let topLoadShowing = true;
   let bottomLoadShowing = true;
+
   export function reset() {
     items = [];
     startIndex = 0;
@@ -30,7 +34,7 @@
 
   let observer = new IntersectionObserver(
     (entries) => {
-      console.log('observer muted: ', muteObserver);
+      verbose && console.log('observer muted: ', muteObserver);
       if (muteObserver) return;
       let shouldLoadBottom = false;
       let shouldLoadTop = false;
@@ -58,6 +62,30 @@
     }
   );
 
+  function isFocused(index: number) {
+    let childElement = itemsElement.children[index] as HTMLElement;
+    return (
+      childElement &&
+      childElement.offsetTop -
+        viewerElement.scrollTop +
+        childElement.offsetHeight >
+        0 &&
+      childElement.offsetTop - viewerElement.scrollTop < 0
+    );
+  }
+  let currentFocusIndex = 0;
+  let currentFocus = writable(null);
+  function focusUpdate() {
+    verbose && console.log('currentFocus', currentFocusIndex);
+    $currentFocus = items[currentFocusIndex];
+  }
+  export function getFocusStore() {
+    return currentFocus;
+  }
+  export function getFocus() {
+    return $currentFocus;
+  }
+  let trackFocus: () => void;
   onMount(async function () {
     if (!viewerElement) {
       viewerElement = topLoaderElement.parentElement.parentElement;
@@ -65,6 +93,50 @@
     observer.observe(topLoaderElement);
     observer.observe(bottomLoaderElement);
     teleport(0, true);
+
+    if (shouldTrackFocus) {
+      currentFocusIndex = 0;
+      trackFocus = function () {
+        // check if currentFocusIndex is still focused
+        if (isFocused(currentFocusIndex)) {
+          return;
+        }
+        // else spread out from current focus to find next focus
+        let i = 0;
+        while (
+          currentFocusIndex + i < itemsElement.children.length ||
+          currentFocusIndex - i > 0
+        ) {
+          i += 1;
+          if (isFocused(currentFocusIndex + i)) {
+            currentFocusIndex += i;
+            focusUpdate();
+            return;
+          }
+          if (isFocused(currentFocusIndex - i)) {
+            currentFocusIndex -= i;
+            focusUpdate();
+            return;
+          }
+        }
+        // if nobody is focused, check if its closer to top or bottom and set those
+        if (
+          viewerElement.scrollTop >
+          viewerElement.scrollHeight - viewerElement.scrollTop
+        ) {
+          currentFocusIndex = 0;
+        } else {
+          currentFocusIndex = itemsElement.children.length - 1;
+        }
+      };
+
+      viewerElement.addEventListener('scroll', trackFocus);
+    }
+  });
+  onDestroy(async function () {
+    if (trackFocus) {
+      viewerElement.removeEventListener('scroll', trackFocus);
+    }
   });
   async function loadItemsTop(amount: number) {
     let i = Math.max(0, startIndex - amount);
@@ -121,7 +193,10 @@
     for (let i = itemsElement.children.length - 1; i >= 0; i--) {
       let child = itemsElement.children[i] as HTMLElement;
       let childTop = child.offsetTop - viewerElement.scrollTop;
-      if (childTop > viewerElement.clientHeight) {
+      if (
+        childTop > viewerElement.clientHeight &&
+        canRemoveItem(items[i], child)
+      ) {
         items.pop();
         endIndex -= 1;
         itemsHeightChange -= child.clientHeight;
@@ -149,7 +224,7 @@
       let childBottom =
         child.offsetTop - viewerElement.scrollTop + child.clientHeight;
 
-      if (childBottom < 0) {
+      if (childBottom < 0 && canRemoveItem(items[i], child)) {
         items.shift();
         startIndex += 1;
         itemsHeightChange -= child.clientHeight;
@@ -219,13 +294,13 @@
           bottomLoaderElement.offsetTop
         )
       ) {
-        console.log('doing fake teleport');
-        console.trace();
+        verbose && console.log('doing fake teleport');
+        verbose && console.trace();
         viewerElement.scrollTop = item.offsetTop;
         return true;
       }
     }
-    console.log('doing real teleport');
+    verbose && console.log('doing real teleport');
     muteObserver = true;
     verbose && console.log('muting obvservers');
     reset();
@@ -238,7 +313,7 @@
         (itemsElement.children[0] as HTMLElement)?.offsetTop,
         loaderHeight
       ) + 1;
-    console.log('set viewer scrollTop: ', viewerElement.scrollTop);
+    verbose && console.log('set viewer scrollTop: ', viewerElement.scrollTop);
     muteObserver = false;
     verbose && console.log('unmuting obvservers');
     return true;

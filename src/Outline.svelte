@@ -4,6 +4,32 @@
   import type { ParaType } from './types';
   import { invoke } from '@tauri-apps/api';
   import { outlineAside } from './transition';
+  import { getContext, onMount, tick } from 'svelte';
+  import type { Writable } from 'svelte/store';
+
+  let getDocLoader: () => Loader = getContext('getDocLoader');
+
+  let docFocus: Writable<ParaType>;
+  onMount(async function () {
+    // wait until Doc is created
+    await tick();
+    docFocus = getDocLoader().getFocusStore();
+  });
+  let items = [];
+  let selectedOutline = null;
+  function docFocusChange() {
+    for (let i = 0; i < items.length; i++) {
+      // find the one after selectedOutline
+      if (items[i].link > $docFocus.index) {
+        selectedOutline = items[i].index - 1;
+        return;
+      } else if (items[i].link == $docFocus.index) {
+        selectedOutline = items[i].index;
+        return;
+      }
+    }
+  }
+  $: $docFocus, docFocusChange();
 
   let viewerElement: Element;
   let loader: Loader;
@@ -11,7 +37,6 @@
   export function getLoader() {
     return loader;
   }
-  let items = [];
   async function serverCommand(i: number, j: number) {
     return (await invoke('get_outline_paras', {
       i,
@@ -26,7 +51,12 @@
       <div class="content">
         <Loader bind:this={loader} bind:items {serverCommand} fetchAmount={30}>
           {#each items as item (item.index)}
-            <OutlineItem {...item} />
+            <OutlineItem
+              outlineLevel={item.outline_level}
+              link={item.link}
+              runs={item.runs}
+              selected={item.index === selectedOutline}
+            />
           {/each}
         </Loader>
       </div>

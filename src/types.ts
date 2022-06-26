@@ -18,10 +18,11 @@ export type ParaType = {
 export type DocumentType = {
   paras: ParaType[];
 };
-export type OutlineItemType = {
+export type OutlineParaType = {
   level: number;
   para: ParaType;
   index: number;
+  link: number;
 };
 export type SearchResultType = {
   text: string;

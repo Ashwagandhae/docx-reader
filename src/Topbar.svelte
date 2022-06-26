@@ -10,6 +10,7 @@
 
   export let showOutline: boolean;
   export let chooseFile: () => void;
+  export let alignOutlineFocus: () => void;
   export let showSearchResults: boolean;
 
   let query: Writable<string> = getContext('query');
@@ -31,6 +32,13 @@
   data-tauri-drag-region
 >
   <section class="outline" data-tauri-drag-region>
+    {#if showOutline}
+      <div transition:fade={{ duration: 300 }}>
+        <Button background={false} on:click={alignOutlineFocus}>
+          <Icon name="link" />
+        </Button>
+      </div>
+    {/if}
     <Button on:click={() => (showOutline = !showOutline)} background={false}>
       <TurningArrow direction={showOutline ? 'left' : 'right'} />
     </Button>

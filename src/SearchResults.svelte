@@ -98,7 +98,6 @@
             {viewerElement}
             {serverCommand}
             fetchAmount={30}
-            verbose={true}
           >
             {#each items as item (item.index)}
               <SearchResult

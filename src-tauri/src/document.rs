@@ -37,9 +37,16 @@ pub struct Para {
     pub outline_level: Option<u32>,
     pub runs: Vec<Run>,
 }
+#[derive(Clone, Serialize, Deserialize)]
+pub struct OutlinePara {
+    pub index: usize,
+    pub link: usize,
+    pub outline_level: Option<u32>,
+    pub runs: Vec<Run>,
+}
 pub struct Document {
     pub paras: Vec<Para>,
-    pub outline_paras: Vec<Para>,
+    pub outline_paras: Vec<OutlinePara>,
     pub style_map: HashMap<String, Attr>,
 }
 impl Document {
@@ -317,7 +324,12 @@ impl Document {
                         current_para.index = self.paras.len();
                         self.paras.push(current_para.clone());
                         if current_para.outline_level.is_some() {
-                            self.outline_paras.push(current_para.clone());
+                            self.outline_paras.push(OutlinePara {
+                                index: self.outline_paras.len(),
+                                link: current_para.index,
+                                outline_level: current_para.outline_level,
+                                runs: current_para.runs,
+                            });
                         }
 
                         current_style.bold = None;
