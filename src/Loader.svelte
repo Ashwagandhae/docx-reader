@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy, tick, getContext } from 'svelte';
   import { writable } from 'svelte/store';
+  import type { LoaderState } from './types';
 
   export let items: any[];
   export let serverCommand: (i: number, j: number) => Promise<any[]>;
@@ -8,6 +9,7 @@
   export let fetchAmount = 10;
   export let loaderHeight = 500;
   export let shouldTrackFocus = false;
+  export let state: LoaderState = null;
 
   export let verbose = false;
   export let viewerElement: HTMLElement = null;
@@ -85,55 +87,70 @@
   export function getFocus() {
     return $currentFocus;
   }
-  let trackFocus: () => void;
+  let trackFocus: () => void = function () {
+    // check if currentFocusIndex is still focused
+    if (isFocused(currentFocusIndex)) {
+      return;
+    }
+    // else spread out from current focus to find next focus
+    let i = 0;
+    while (
+      currentFocusIndex + i < itemsElement.children.length ||
+      currentFocusIndex - i > 0
+    ) {
+      i += 1;
+      if (isFocused(currentFocusIndex + i)) {
+        currentFocusIndex += i;
+        focusUpdate();
+        return;
+      }
+      if (isFocused(currentFocusIndex - i)) {
+        currentFocusIndex -= i;
+        focusUpdate();
+        return;
+      }
+    }
+    // if nobody is focused, check if its closer to top or bottom and set those
+    if (
+      viewerElement.scrollTop >
+      viewerElement.scrollHeight - viewerElement.scrollTop
+    ) {
+      currentFocusIndex = 0;
+    } else {
+      currentFocusIndex = itemsElement.children.length - 1;
+    }
+  };
   onMount(async function () {
     if (!viewerElement) {
       viewerElement = topLoaderElement.parentElement.parentElement;
     }
     observer.observe(topLoaderElement);
     observer.observe(bottomLoaderElement);
-    teleport(0, true);
+
+    if (state) {
+      console.log(state);
+      startIndex = state.startIndex;
+      endIndex = state.endIndex;
+      items = await serverCommand(startIndex, endIndex);
+      await tick();
+      viewerElement.scrollTop = state.scrollTop;
+    } else {
+      teleport(0, true);
+    }
 
     if (shouldTrackFocus) {
       currentFocusIndex = 0;
-      trackFocus = function () {
-        // check if currentFocusIndex is still focused
-        if (isFocused(currentFocusIndex)) {
-          return;
-        }
-        // else spread out from current focus to find next focus
-        let i = 0;
-        while (
-          currentFocusIndex + i < itemsElement.children.length ||
-          currentFocusIndex - i > 0
-        ) {
-          i += 1;
-          if (isFocused(currentFocusIndex + i)) {
-            currentFocusIndex += i;
-            focusUpdate();
-            return;
-          }
-          if (isFocused(currentFocusIndex - i)) {
-            currentFocusIndex -= i;
-            focusUpdate();
-            return;
-          }
-        }
-        // if nobody is focused, check if its closer to top or bottom and set those
-        if (
-          viewerElement.scrollTop >
-          viewerElement.scrollHeight - viewerElement.scrollTop
-        ) {
-          currentFocusIndex = 0;
-        } else {
-          currentFocusIndex = itemsElement.children.length - 1;
-        }
-      };
-
       viewerElement.addEventListener('scroll', trackFocus);
     }
   });
-  onDestroy(async function () {
+  export function saveState() {
+    state = {
+      startIndex: startIndex,
+      endIndex: endIndex,
+      scrollTop: viewerElement.scrollTop,
+    };
+  }
+  onDestroy(function () {
     if (trackFocus) {
       viewerElement.removeEventListener('scroll', trackFocus);
     }

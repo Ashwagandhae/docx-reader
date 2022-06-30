@@ -29,3 +29,9 @@ export type SearchResultType = {
   index: number;
   query_index: number;
 };
+
+export type LoaderState = {
+  startIndex: number;
+  endIndex: number;
+  scrollTop: number;
+};

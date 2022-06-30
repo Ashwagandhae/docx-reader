@@ -1,7 +1,7 @@
 <script lang="ts">
   import Loader from './Loader.svelte';
   import OutlineItem from './OutlineItem.svelte';
-  import type { ParaType } from './types';
+  import type { ParaType, LoaderState } from './types';
   import { invoke } from '@tauri-apps/api';
   import { outlineAside } from './transition';
   import { getContext, onMount, tick } from 'svelte';
@@ -34,6 +34,13 @@
   let viewerElement: Element;
   let loader: Loader;
   export let showOutline: boolean;
+  $: if (!showOutline) {
+    loader?.saveState();
+  }
+
+  export let state: {
+    loader: LoaderState;
+  };
   export function getLoader() {
     return loader;
   }
@@ -49,7 +56,13 @@
   <div class="top" transition:outlineAside>
     <div bind:this={viewerElement} class="viewer">
       <div class="content">
-        <Loader bind:this={loader} bind:items {serverCommand} fetchAmount={30}>
+        <Loader
+          bind:this={loader}
+          bind:items
+          {serverCommand}
+          fetchAmount={30}
+          bind:state={state.loader}
+        >
           {#each items as item (item.index)}
             <OutlineItem
               outlineLevel={item.outline_level}

@@ -4,8 +4,10 @@ use crate::document::Para;
 
 use serde::{Deserialize, Serialize};
 use std::cmp;
+use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::State;
+use tauri::Window;
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SearchResult {
@@ -15,15 +17,15 @@ pub struct SearchResult {
   pub query_index: usize,
 }
 
-pub struct Paras(pub Mutex<Vec<Para>>);
-pub struct OutlineParas(pub Mutex<Vec<OutlinePara>>);
+pub struct Paras(pub Mutex<HashMap<String, Vec<Para>>>);
+pub struct OutlineParas(pub Mutex<HashMap<String, Vec<OutlinePara>>>);
 pub struct SearchResultsState {
   pub results: Vec<SearchResult>,
   pub last_query: Option<String>,
   pub para_texts: Vec<String>,
 }
 
-pub struct SearchResults(pub Mutex<SearchResultsState>);
+pub struct SearchResults(pub Mutex<HashMap<String, SearchResultsState>>);
 
 #[tauri::command]
 pub fn load_file(
@@ -31,10 +33,17 @@ pub fn load_file(
   paras: State<Paras>,
   outline_paras: State<OutlineParas>,
   search_results: State<SearchResults>,
+  window: Window,
 ) -> bool {
-  let mut paras = paras.0.lock().unwrap();
-  let mut outline_paras = outline_paras.0.lock().unwrap();
-  let mut search_results = search_results.0.lock().unwrap();
+  let label = window.label();
+  let mut paras_dict = paras.0.lock().unwrap();
+  let paras = paras_dict.get_mut(label).unwrap();
+
+  let mut outline_paras_dict = outline_paras.0.lock().unwrap();
+  let outline_paras = outline_paras_dict.get_mut(label).unwrap();
+
+  let mut search_results_dict = search_results.0.lock().unwrap();
+  let mut search_results = search_results_dict.get_mut(label).unwrap();
   // first unload file
   println!("unloading current file");
   paras.clear();
@@ -65,10 +74,17 @@ pub fn unload_file(
   paras: State<Paras>,
   outline_paras: State<OutlineParas>,
   search_results: State<SearchResults>,
+  window: Window,
 ) -> bool {
-  let mut paras = paras.0.lock().unwrap();
-  let mut outline_paras = outline_paras.0.lock().unwrap();
-  let mut search_results = search_results.0.lock().unwrap();
+  let label = window.label();
+  let mut paras_dict = paras.0.lock().unwrap();
+  let paras = paras_dict.get_mut(label).unwrap();
+
+  let mut outline_paras_dict = outline_paras.0.lock().unwrap();
+  let outline_paras = outline_paras_dict.get_mut(label).unwrap();
+
+  let mut search_results_dict = search_results.0.lock().unwrap();
+  let mut search_results = search_results_dict.get_mut(label).unwrap();
   paras.clear();
   outline_paras.clear();
   search_results.results.clear();
@@ -83,11 +99,16 @@ pub fn search(
   j: usize,
   paras: State<'_, Paras>,
   search_results: State<'_, SearchResults>,
+  window: Window,
 ) -> Vec<SearchResult> {
   println!("searching with query: {:?}", query);
+  let label = window.label();
 
-  let paras = paras.0.lock().unwrap();
-  let mut search_results = search_results.0.lock().unwrap();
+  let mut paras_dict = paras.0.lock().unwrap();
+  let paras = paras_dict.get_mut(label).unwrap();
+
+  let mut search_results_dict = search_results.0.lock().unwrap();
+  let mut search_results = search_results_dict.get_mut(label).unwrap();
   let query = query.to_lowercase();
   // decide what to do with search_results.results
   if search_results.last_query.is_some() {
@@ -155,17 +176,21 @@ pub fn search(
   result
 }
 #[tauri::command]
-pub fn clear_search(search_results: State<SearchResults>) -> bool {
+pub fn clear_search(search_results: State<SearchResults>, window: Window) -> bool {
+  let label = window.label();
   println!("unloading search");
-  let mut search_results = search_results.0.lock().unwrap();
+  let mut search_results_dict = search_results.0.lock().unwrap();
+  let mut search_results = search_results_dict.get_mut(label).unwrap();
   search_results.results.clear();
   search_results.last_query = None;
   return true;
 }
 
 #[tauri::command]
-pub fn get_paras(i: usize, j: usize, paras: State<Paras>) -> Vec<Para> {
-  let paras = paras.0.lock().unwrap();
+pub fn get_paras(i: usize, j: usize, paras: State<Paras>, window: Window) -> Vec<Para> {
+  let label = window.label();
+  let mut paras_dict = paras.0.lock().unwrap();
+  let paras = paras_dict.get_mut(label).unwrap();
   let mut result = Vec::new();
   println!("requested paragraphs: {:?}..{:?}", i, j);
   if paras.len() > 0 {
@@ -185,8 +210,13 @@ pub fn get_outline_paras(
   i: usize,
   j: usize,
   outline_paras: State<OutlineParas>,
+  window: Window,
 ) -> Vec<OutlinePara> {
-  let outline_paras = outline_paras.0.lock().unwrap();
+  let label = window.label();
+
+  let mut outline_paras_dict = outline_paras.0.lock().unwrap();
+  let outline_paras = outline_paras_dict.get_mut(label).unwrap();
+
   let mut result = Vec::new();
   println!("requested outline paragraphs: {:?}..{:?}", i, j);
   if outline_paras.len() > 0 {
@@ -205,9 +235,15 @@ pub fn get_nearest_outline_para(
   para_index: usize,
   outline_paras: State<OutlineParas>,
   paras: State<Paras>,
+  window: Window,
 ) -> Option<OutlinePara> {
-  let outline_paras = outline_paras.0.lock().unwrap();
-  let paras = paras.0.lock().unwrap();
+  let label = window.label();
+
+  let mut paras_dict = paras.0.lock().unwrap();
+  let paras = paras_dict.get_mut(label).unwrap();
+
+  let mut outline_paras_dict = outline_paras.0.lock().unwrap();
+  let outline_paras = outline_paras_dict.get_mut(label).unwrap();
   // get the ratio position in paras as a starting point
   // so you minimize the amount you loop
   // theoretically you could still loop through all elements if outline elements are spaced unevenly

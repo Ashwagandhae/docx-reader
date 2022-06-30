@@ -39,11 +39,11 @@
     min-height: 1em;
     font-size: 0.8em;
   }
-  li:hover,
-  li.selected {
+  li:hover {
     background-color: var(--back-two-hover);
   }
-  li:active {
+  li:active,
+  li.selected {
     background-color: var(--back-two-active);
   }
   span {

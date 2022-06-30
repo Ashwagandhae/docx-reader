@@ -17,9 +17,13 @@ tauri-build = { version = "1.0.0", features = [] }
 [dependencies]
 quick-xml = "0.22.0"
 serde = "1.0.137"
-tauri = { version = "1.0.0", features = ["api-all"] }
+# tauri = { version = "1.0.0", features = ["api-all"] }
+tauri = { version = "1.0.0-beta.5", features = ["api-all"] }
+
 zip = "0.6.2"
 cocoa = "0.24"
+proc-macro2 = "1.0.40"
+
 
 [features]
 # by default Tauri runs in production mode
@@ -28,3 +32,9 @@ default = [ "custom-protocol" ]
 # this feature is used used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = [ "tauri/custom-protocol" ]
+# macOS system libs
+[target.'cfg(target_os = "macos")'.dependencies]
+swift-rs = { git = "https://github.com/Brendonovich/swift-rs.git", branch = "autorelease" }
+
+[target.'cfg(target_os = "macos")'.build-dependencies]
+swift-rs = { git = "https://github.com/Brendonovich/swift-rs.git", branch = "autorelease", features = ["build"] }

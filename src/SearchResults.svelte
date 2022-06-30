@@ -5,7 +5,7 @@
   import { invoke } from '@tauri-apps/api';
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
-  import type { SearchResultType } from './types';
+  import type { SearchResultType, LoaderState } from './types';
   import { tick } from 'svelte';
   import { searchAside } from './transition';
 
@@ -16,6 +16,9 @@
   export function getLoader() {
     return loader;
   }
+  export let state: {
+    loader: LoaderState;
+  };
   async function serverCommand(i: number, j: number) {
     if ($query.length > 0) {
       let ret = (await invoke('search', {
@@ -98,6 +101,7 @@
             {viewerElement}
             {serverCommand}
             fetchAmount={30}
+            bind:state={state.loader}
           >
             {#each items as item (item.index)}
               <SearchResult

@@ -221,7 +221,6 @@ impl Document {
             size: None,
         };
         self.get_style_id(&mut current_para_style, &"Normal".to_string());
-        let mut current_run_style = current_para_style.clone();
         let mut current_style = &mut current_para_style;
         loop {
             match reader.read_event(&mut buf) {
@@ -233,8 +232,7 @@ impl Document {
                             current_style = &mut current_para_style;
                         }
                         b"w:r" => {
-                            current_run_style = current_para_style.clone();
-                            current_style = &mut current_run_style;
+                            current_style = &mut current_para_style;
                         }
                         _ => (),
                     }

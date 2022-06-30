@@ -3,7 +3,7 @@
   import Para from './Para.svelte';
   import { invoke } from '@tauri-apps/api';
   import { tick, onMount } from 'svelte';
-  import type { ParaType } from './types';
+  import type { ParaType, LoaderState } from './types';
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
   import {
@@ -12,12 +12,16 @@
     getParaHTML,
   } from './selection';
   import { register } from './shortcut';
+  let isResizing: Writable<boolean> = getContext('isResizing');
 
   let query: Writable<string> = getContext('query');
   let zoom: Writable<number> = getContext('zoom');
 
   export let showOutline: boolean;
   export let showSearchResults: boolean;
+  export let state: {
+    loader: LoaderState;
+  };
 
   let viewerElement: HTMLElement;
   let loader: Loader;
@@ -139,6 +143,7 @@
   bind:this={viewerElement}
   class:showOutline
   class:showSearchResults={showSearchResults && $query.length > 0}
+  class:isResizing={$isResizing}
 >
   <div class="content" style={`font-size: ${$zoom * 16}px;`}>
     <div class="paras-container">
@@ -151,6 +156,7 @@
             {serverCommand}
             {canRemoveItem}
             shouldTrackFocus={true}
+            bind:state={state.loader}
           >
             {#each items as item, index (item.index)}
               <Para
@@ -195,6 +201,9 @@
     justify-content: center;
     align-items: center;
     transition: padding var(--transition-speed);
+  }
+  .isResizing .paras-container {
+    transition: none;
   }
   .showOutline.showSearchResults .paras-container {
     width: min(calc(100vw - var(--sidebar-width)));

@@ -1,9 +1,27 @@
 use std::path::PathBuf;
 use tauri::api::dialog::blocking::FileDialogBuilder as FileDialogBuilderBlocking;
-use tauri::{Runtime, Window, WindowBuilder, WindowUrl};
+use tauri::{Runtime, State, Window};
 
 use cocoa::appkit::NSWindowTitleVisibility;
 use cocoa::appkit::{NSWindow, NSWindowStyleMask};
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+#[derive(Clone, serde::Serialize)]
+pub struct Payload {
+  pub message: String,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct WindowCreate {
+  pub file_path: String,
+}
+pub struct WindowsCreateState {
+  pub label: u32,
+  pub last_focus: String,
+  pub ready: HashMap<String, WindowCreate>,
+}
+pub struct WindowsCreate(pub Mutex<WindowsCreateState>);
 
 #[tauri::command]
 pub fn get_window_fullscreen_state(window: tauri::Window) -> bool {
@@ -53,18 +71,24 @@ impl<R: Runtime> WindowExt for Window<R> {
   }
 }
 #[tauri::command]
-pub async fn new_window(window: Window) -> Result<(), ()> {
-  let url = WindowUrl::App(PathBuf::from("index.html"));
-
-  println!("create new window: {}", url);
-
-  let win = WindowBuilder::new(&window, "test", url)
-    .title("hola")
-    .build()
-    .unwrap();
-  win.set_transparent_titlebar(true);
-  Ok(())
+pub fn window_ready(
+  window: Window,
+  windows_create: State<'_, WindowsCreate>,
+) -> Option<WindowCreate> {
+  window.show().unwrap();
+  // if window has creation info
+  let windows_create = windows_create.0.lock().unwrap();
+  match windows_create.ready.get(window.label()) {
+    Some(create) => return Some(create.clone()),
+    None => return None,
+  }
 }
+#[tauri::command]
+pub fn window_focus(window: Window, windows_create: State<WindowsCreate>) {
+  let mut windows_create = windows_create.0.lock().unwrap();
+  windows_create.last_focus = window.label().to_string();
+}
+
 // #[tauri::command]
 // pub async fn close_splashscreen(window: tauri::Window) {
 //   // Close splashscreen

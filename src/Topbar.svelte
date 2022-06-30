@@ -114,10 +114,11 @@
   .search {
     width: var(--sidebar-width);
   }
-  /* todo make width not fixed */
+  /* TODO make reactive to traffic lights when invis topbar */
   .outline {
     justify-content: flex-end;
-    width: 100px;
+    /* width: 100px; */
+    width: 40px;
     transition: width 300ms;
   }
 

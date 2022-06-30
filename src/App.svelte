@@ -11,9 +11,15 @@
   import { setContext } from 'svelte';
   import { writable } from 'svelte/store';
   import { register } from './shortcut';
-  import type { OutlineParaType, ParaType } from './types';
+  import type { OutlineParaType, ParaType, LoaderState } from './types';
   import type { Writable } from 'svelte/store';
 
+  onMount(async () => {
+    let ready: { file_path: string } = await invoke('window_ready', {});
+    if (ready != null) {
+      if (ready.file_path != null) loadFile(ready.file_path);
+    }
+  });
   // listen for changes in system settings
   let colorThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   let updateColorTheme = function () {
@@ -34,14 +40,28 @@
   listen('tauri://file-drop-cancelled', () => {
     droppingFile = false;
   });
-  listen('tauri://file-drop', (event) => {
+  listen('tauri://file-drop', (event: { payload: string[] }) => {
     droppingFile = false;
-    if ((event.payload as string[]).length > 0) {
+    if (event.payload.length > 0) {
       loadFile(event.payload[0]);
+    }
+    if (event.payload.length > 1) {
+      invoke('new_window', {
+        creates: event.payload
+          .slice(1, event.payload.length)
+          .map(function (path) {
+            return {
+              file_path: path,
+            };
+          }),
+      });
     }
   });
   listen('load_file', (event: { payload: { message: string } }) => {
     loadFile(event.payload.message as string);
+  });
+  listen('tauri://focus', (event: { payload: boolean }) => {
+    event.payload && invoke('window_focus', {});
   });
   let fileInfo = writable({
     open: false,
@@ -119,7 +139,7 @@
   }
   setContext('nextResult', nextResult);
   register('CommandOrControl+N', () => {
-    invoke('new_window', {});
+    invoke('new_window', { creates: [null] });
   });
 
   async function alignOutlineFocus() {
@@ -135,6 +155,18 @@
 
   let zoom = writable(1);
   setContext('zoom', zoom);
+
+  let states = {
+    doc: {
+      loader: null,
+    },
+    outline: {
+      loader: null,
+    },
+    searchResults: {
+      loader: null,
+    },
+  };
 </script>
 
 <svelte:window on:resize={resizeHandler} />
@@ -154,13 +186,22 @@
     />
   </div>
   <div class="doc">
-    <Doc bind:this={doc} {showOutline} {showSearchResults} />
+    <Doc
+      bind:this={doc}
+      {showOutline}
+      {showSearchResults}
+      bind:state={states.doc}
+    />
   </div>
   <aside class="outline">
-    <Outline bind:this={outline} {showOutline} />
+    <Outline bind:this={outline} {showOutline} bind:state={states.outline} />
   </aside>
   <aside class="search-results">
-    <SearchResults bind:this={searchResults} {showSearchResults} />
+    <SearchResults
+      bind:this={searchResults}
+      {showSearchResults}
+      bind:state={states.searchResults}
+    />
   </aside>
 </main>
 
