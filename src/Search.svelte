@@ -2,9 +2,12 @@
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
   import { register } from './shortcut';
+  import type { Query } from './types';
 
   export let placeholder = '';
-  let query: Writable<string> = getContext('query');
+  export let matchCase: boolean;
+  export let onlyOutline: boolean;
+  let query: Writable<Query> = getContext('query');
   let selectedQuery: Writable<{ paraIndex: number; charIndex: number }> =
     getContext('selectedQuery');
 
@@ -31,7 +34,7 @@
       event.preventDefault();
       event.stopPropagation();
       textarea.blur();
-      $query = '';
+      $query.text = '';
       value = '';
       $selectedQuery.paraIndex = undefined;
       $selectedQuery.charIndex = undefined;
@@ -54,7 +57,11 @@
       clearTimeout(valueUpdateTimeout);
     }
     valueUpdateTimeout = setTimeout(() => {
-      query.set(value.replace(/\u00A0/g, ' '));
+      query.set({
+        text: value.replace(/\u00A0/g, ' '),
+        matchCase,
+        onlyOutline,
+      });
     }, 200);
   }
   $: value, onValueUpdate();
@@ -84,6 +91,7 @@
     box-sizing: border-box;
     white-space: nowrap;
     resize: none;
+    transition: box-shadow var(--transition-speed);
   }
   textarea::placeholder {
     color: var(--text-weak);
@@ -93,6 +101,9 @@
     background-color: var(--back-two-hover);
     color: var(--text-strong);
     outline: none;
+  }
+  textarea:hover {
+    box-shadow: var(--shadow-small);
   }
   textarea:active {
     background-color: var(--back-two-active);

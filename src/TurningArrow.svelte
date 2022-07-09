@@ -18,10 +18,10 @@
   .top.left {
     transform: rotate(180deg);
   }
-  .top.up {
+  .top.down {
     transform: rotate(90deg);
   }
-  .top.down {
+  .top.up {
     transform: rotate(-90deg);
   }
 </style>

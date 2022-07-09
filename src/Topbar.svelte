@@ -7,19 +7,23 @@
   import type { Writable } from 'svelte/store';
   import { listen } from '@tauri-apps/api/event';
   import { fade } from 'svelte/transition';
+  import type { Query } from './types';
 
   export let showOutline: boolean;
   export let chooseFile: () => void;
   export let alignOutlineFocus: () => void;
   export let showSearchResults: boolean;
+  export let matchCase: boolean;
+  export let onlyOutline: boolean;
 
-  let query: Writable<string> = getContext('query');
+  let query: Writable<Query> = getContext('query');
   let zoom: Writable<number> = getContext('zoom');
   let isResizing: Writable<boolean> = getContext('isResizing');
   let fileInfo: Writable<{ open: boolean; name: string; path: string }> =
     getContext('fileInfo');
 
   let isFullscreen: Writable<boolean> = getContext('isFullscreen');
+  // TODO fade out topbar when not needed
 </script>
 
 <div
@@ -60,13 +64,13 @@
           No open file
         {/if}
       </h1>
-      <Button on:click={chooseFile}>Open</Button>
+      <Button on:click={chooseFile} hoverShadow>Open</Button>
     </div>
   </section>
   <section class="search" data-tauri-drag-region>
-    <Search placeholder={'Search'} />
+    <Search placeholder={'Search'} {matchCase} {onlyOutline} />
     <!-- todo make text not bleed -->
-    {#if $query.length > 0}
+    {#if $query.text.length > 0}
       <div
         class="search-buttons"
         on:mousedown|preventDefault|stopPropagation={() => {}}
@@ -128,7 +132,6 @@
   section.general {
     flex: 1;
     min-width: 0;
-    overflow: hidden;
     align-items: center;
     justify-content: center;
     width: 100%;
@@ -164,7 +167,6 @@
   }
   .search {
     min-width: 0;
-    overflow: hidden;
   }
   .search-buttons {
     position: absolute;

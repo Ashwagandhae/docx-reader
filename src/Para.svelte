@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { RunType } from './types';
+  import type { RunType, Query } from './types';
   import { getContext, onMount, tick } from 'svelte';
   import { writable } from 'svelte/store';
   import type { Writable } from 'svelte/store';
@@ -12,7 +12,6 @@
   export let runs: RunType[] = [];
   export let outline_level: number;
   export let index: number;
-  export let viewerElement: HTMLElement;
   let elementType = 'p';
   if (outline_level === 0) {
     elementType = 'h1';
@@ -28,7 +27,7 @@
     elementType = 'h6';
   }
 
-  let query: Writable<string> = getContext('query');
+  let query: Writable<Query> = getContext('query');
   let selectedQuery: Writable<{ paraIndex: number; charIndex: number }> =
     getContext('selectedQuery');
   let displayRuns: (RunType & {
@@ -37,20 +36,34 @@
   })[] = [];
   let combinedText = runs.reduce((prev, curr) => prev + curr.text, '');
   function onQueryUpdate() {
+    if ($query.onlyOutline && outline_level == null) {
+      displayRuns = runs;
+      return;
+    }
     displayRuns = [];
 
     let matches = [];
-    if ($query.length > 0) {
-      matches = [
-        ...combinedText.toLowerCase().matchAll(new RegExp($query, 'gi')),
-      ].map((a) => a.index);
+    if ($query.text.length > 0) {
+      let queryText = $query.text;
+      let formatText = combinedText;
+      if (!$query.matchCase) {
+        queryText = queryText.toLowerCase();
+        formatText = formatText.toLowerCase();
+      }
+      // get indexes of all matches
+      matches = [];
+      let charIndex = formatText.indexOf(queryText);
+      while (charIndex < formatText.length && charIndex != -1) {
+        matches.push(charIndex);
+        charIndex = formatText.indexOf(queryText, charIndex + 1);
+      }
     }
     let i = 0;
     for (let run of runs) {
       let queryMatches = [];
       let selectedQueryMatch = undefined;
       for (let match of matches) {
-        if (match + $query.length >= i && match < i + run.text.length) {
+        if (match + $query.text.length >= i && match < i + run.text.length) {
           queryMatches.push(match - i);
           if (
             index === $selectedQuery.paraIndex &&
@@ -103,16 +116,26 @@
     return text;
   }
   function copySelf() {
-    let clipboardHTML = getClipboardHTML();
-    const blob = new Blob([clipboardHTML.outerHTML], { type: 'text/html' });
-    const clipboardItem = new window.ClipboardItem({ 'text/html': blob });
+    const clipboardItem = new window.ClipboardItem({
+      'text/html': new Blob([getClipboardHTML().outerHTML], {
+        type: 'text/html',
+      }),
+      'text/plain': new Blob([getClipboardText()], { type: 'text/plain' }),
+    });
     navigator.clipboard.write([clipboardItem]);
   }
   let loading = false;
+  let showButtons = false;
 </script>
 
+<!-- TODO make the buttonsContainer detect hover correctly -->
 <div class="top" on:click={() => console.log(index)}>
-  <div class="buttons-container">
+  <div
+    class="buttonsContainer"
+    class:showButtons
+    on:mouseenter={() => (showButtons = true)}
+    on:mouseleave={() => (showButtons = false)}
+  >
     <div class="buttons" class:loading>
       <Button
         on:click={() => {
@@ -129,7 +152,7 @@
           loading = false;
         }}
       >
-        <Icon name="copy" />
+        <Icon name="copyBelow" />
       </Button>
     </div>
   </div>
@@ -152,34 +175,36 @@
 <style>
   .top {
     position: relative;
-    display: grid;
-    grid-template-columns: 3rem auto;
-    grid-template-rows: auto;
-    justify-content: left;
-    gap: var(--padding);
     height: auto;
     width: auto;
     transition: background 0.3s;
   }
-  .buttons-container {
+  .buttonsContainer {
     position: relative;
-    width: 2rem;
-    height: auto;
+    pointer-events: none;
+
+    width: 30%;
+    height: 100%;
+    position: absolute;
+    z-index: 1;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
   .buttons {
-    padding-top: 10%;
-
     position: absolute;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: var(--padding);
     opacity: 0;
     color: var(--text);
+
     transition: opacity var(--transition-speed);
   }
 
   .buttons.loading,
-  .top:hover .buttons {
+  .showButtons .buttons {
     opacity: 1;
   }
   .buttons.loading {

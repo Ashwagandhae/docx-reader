@@ -4,11 +4,18 @@ use crate::document::Para;
 
 use serde::{Deserialize, Serialize};
 use std::cmp;
+use std::cmp::PartialEq;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use tauri::State;
 use tauri::Window;
 
+#[derive(Clone, PartialEq, Deserialize)]
+pub struct Query {
+  pub text: String,
+  pub match_case: bool,
+  pub only_outline: bool,
+}
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SearchResult {
   pub link: usize,
@@ -21,7 +28,7 @@ pub struct Paras(pub Mutex<HashMap<String, Vec<Para>>>);
 pub struct OutlineParas(pub Mutex<HashMap<String, Vec<OutlinePara>>>);
 pub struct SearchResultsState {
   pub results: Vec<SearchResult>,
-  pub last_query: Option<String>,
+  pub last_query: Option<Query>,
   pub para_texts: Vec<String>,
 }
 
@@ -94,14 +101,14 @@ pub fn unload_file(
 }
 #[tauri::command]
 pub fn search(
-  query: String,
+  query: Query,
   i: usize,
   j: usize,
   paras: State<'_, Paras>,
   search_results: State<'_, SearchResults>,
   window: Window,
 ) -> Vec<SearchResult> {
-  println!("searching with query: {:?}", query);
+  println!("searching with query: {:?}", query.text);
   let label = window.label();
 
   let mut paras_dict = paras.0.lock().unwrap();
@@ -109,15 +116,23 @@ pub fn search(
 
   let mut search_results_dict = search_results.0.lock().unwrap();
   let mut search_results = search_results_dict.get_mut(label).unwrap();
-  let query = query.to_lowercase();
+
+  let query_text = match query.match_case {
+    true => query.text.clone(),
+    false => query.text.to_lowercase(),
+  };
   // decide what to do with search_results.results
   if search_results.last_query.is_some() {
+    let last_query = search_results.last_query.as_ref().unwrap();
     // if queries are the same, we can keep everything
-    if &query == search_results.last_query.as_ref().unwrap() {
+    if &query == last_query {
       println!("reused old searches")
     } else
     // if last query is smaller version of this query, we can narrow down old search results first
-    if query.contains(search_results.last_query.as_ref().unwrap()) {
+    if query_text.contains(&last_query.text)
+      && (query.match_case == last_query.match_case || query.match_case == true)
+      && (query.only_outline == last_query.only_outline || query.only_outline == true)
+    {
       println!("narrowed down old searches");
       // loop through search_results.results and remove all that are not in query
       // it is guaranteed that there will be less
@@ -125,7 +140,9 @@ pub fn search(
       for result in search_results.results.iter() {
         // if the amount of matches in text is larger than query_index
         let combined_text = search_results.para_texts[result.link].clone();
-        if combined_text.to_lowercase().matches(&query).count() > result.query_index {
+        if combined_text.to_lowercase().matches(&query_text).count() > result.query_index
+          && (!query.only_outline || result.para.outline_level.is_some())
+        {
           let mut new_result = result.clone();
           new_result.index = new_results.len();
           new_results.push(new_result);
@@ -150,15 +167,21 @@ pub fn search(
     l = last_result.unwrap().para.index + 1;
   }
   while search_results.results.len() < j && l < paras.len() {
-    let combined_text = &search_results.para_texts[l];
-    for k in 0..combined_text.to_lowercase().matches(&query).count() {
-      let index = search_results.results.len();
-      search_results.results.push(SearchResult {
-        link: l.clone(),
-        index: index,
-        para: paras[l].clone(),
-        query_index: k,
-      });
+    if !query.only_outline || paras[l].outline_level.is_some() {
+      let combined_text = &search_results.para_texts[l];
+      let combined_text = match query.match_case {
+        true => combined_text.clone(),
+        false => combined_text.to_lowercase(),
+      };
+      for k in 0..combined_text.matches(&query_text).count() {
+        let index = search_results.results.len();
+        search_results.results.push(SearchResult {
+          link: l.clone(),
+          index: index,
+          para: paras[l].clone(),
+          query_index: k,
+        });
+      }
     }
     l += 1;
   }

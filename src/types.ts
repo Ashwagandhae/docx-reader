@@ -35,3 +35,15 @@ export type LoaderState = {
   endIndex: number;
   scrollTop: number;
 };
+export type Query = {
+  text: string;
+  matchCase: boolean;
+  onlyOutline: boolean;
+};
+
+export enum Align {
+  Up,
+  Down,
+  Left,
+  Right,
+}

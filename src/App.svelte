@@ -95,7 +95,11 @@
     };
     await tick();
   }
-  let query = writable('');
+  let query = writable({
+    text: '',
+    matchCase: false,
+    onlyOutline: false,
+  });
   setContext('query', query);
   let selectedQuery = writable({
     paraIndex: null,
@@ -165,6 +169,8 @@
     },
     searchResults: {
       loader: null,
+      matchCase: false,
+      onlyOutline: false,
     },
   };
 </script>
@@ -181,6 +187,8 @@
     <Topbar
       bind:showOutline
       bind:showSearchResults
+      matchCase={states.searchResults.matchCase}
+      onlyOutline={states.searchResults.onlyOutline}
       {chooseFile}
       {alignOutlineFocus}
     />
@@ -294,14 +302,17 @@
     --text: hsl(0, 0%, 75%);
     --text-weak: hsl(0, 0%, 50%);
     --text-strong: hsl(0, 0%, 85%);
+
+    --shadow: rgba(0, 0, 0, 0.4) 0px 7px 29px 0px;
+    --shadow-small: rgba(0, 0, 0, 0.2) 0px 7px 10px 0px;
   }
   :global(body) {
     --back: hsl(0, 0%, 100%);
     --back-hover: hsl(0, 0%, 97%);
     --back-active: hsl(0, 0%, 94%);
 
-    --back-two: hsl(0, 0%, 94%);
-    --back-two-hover: hsl(0, 0%, 90%);
+    --back-two: hsl(0, 0%, 95%);
+    --back-two-hover: hsl(0, 0%, 89%);
     --back-two-active: hsl(0, 0%, 80%);
     --back-highlight: hsl(195, 100%, 80%);
 
@@ -313,5 +324,8 @@
     --text: hsl(0, 0%, 30%);
     --text-weak: hsl(0, 0%, 50%);
     --text-strong: hsl(0, 0%, 10%);
+
+    --shadow: rgba(0, 0, 0, 0.2) 0px 7px 29px 0px;
+    --shadow-small: rgba(0, 0, 0, 0.05) 0px 7px 10px 0px;
   }
 </style>

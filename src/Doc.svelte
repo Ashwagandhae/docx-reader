@@ -3,18 +3,14 @@
   import Para from './Para.svelte';
   import { invoke } from '@tauri-apps/api';
   import { tick, onMount } from 'svelte';
-  import type { ParaType, LoaderState } from './types';
+  import type { ParaType, LoaderState, Query } from './types';
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
-  import {
-    getSelectionString,
-    copyToClipboard,
-    getParaHTML,
-  } from './selection';
+  import { getSelectionNode, copyToClipboard, getParaHTML } from './selection';
   import { register } from './shortcut';
   let isResizing: Writable<boolean> = getContext('isResizing');
 
-  let query: Writable<string> = getContext('query');
+  let query: Writable<Query> = getContext('query');
   let zoom: Writable<number> = getContext('zoom');
 
   export let showOutline: boolean;
@@ -86,11 +82,12 @@
       viewerElement.scrollHeight * ratio - viewerElement.clientHeight / 2;
   });
   register('CommandOrControl+c', function () {
-    copyToClipboard(getSelectionString(parasElement, items));
+    let copyNode = getSelectionNode(parasElement, items);
+    copyNode && copyToClipboard(copyNode);
   });
 
   $: {
-    if (showSearchResults && $query.length > 0 && !showOutline) {
+    if (showSearchResults && $query.text.length > 0 && !showOutline) {
       viewerElement.scrollLeft = viewerElement.scrollWidth;
     }
   }
@@ -128,7 +125,7 @@
       }
       i++;
     }
-    copyToClipboard(ret.innerHTML);
+    copyToClipboard(ret);
   }
   function canRemoveItem(_: any, itemElement: HTMLElement) {
     const selection = window.getSelection();
@@ -142,7 +139,7 @@
   on:wheel={handleZoom}
   bind:this={viewerElement}
   class:showOutline
-  class:showSearchResults={showSearchResults && $query.length > 0}
+  class:showSearchResults={showSearchResults && $query.text.length > 0}
   class:isResizing={$isResizing}
 >
   <div class="content" style={`font-size: ${$zoom * 16}px;`}>
@@ -157,11 +154,11 @@
             {canRemoveItem}
             shouldTrackFocus={true}
             bind:state={state.loader}
+            verbose
           >
             {#each items as item, index (item.index)}
               <Para
                 {...item}
-                {viewerElement}
                 copySelfAndChildren={() => copyParaAndChildren(index)}
               />
             {/each}
@@ -186,12 +183,11 @@
     width: 100vw;
     padding: 0;
     height: auto;
-    /* transition: padding 300ms; */
   }
 
-  .showSearchResults.showOutline .content {
+  /* .showSearchResults.showOutline .content {
     padding: 0 0 0 calc(var(--sidebar-width));
-  }
+  } */
   .paras-container {
     width: 100vw;
     height: auto;
@@ -205,11 +201,9 @@
   .isResizing .paras-container {
     transition: none;
   }
-  .showOutline.showSearchResults .paras-container {
-    width: min(calc(100vw - var(--sidebar-width)));
-  }
   .paras-container {
     padding: 0;
+    transition: padding var(--transition-speed);
   }
   .showOutline .paras-container {
     padding-left: var(--sidebar-width);
@@ -218,12 +212,12 @@
     padding-right: var(--sidebar-width);
   }
   .showOutline.showSearchResults .paras-container {
-    padding: 0;
+    padding: 0 var(--sidebar-width);
   }
 
   .paras {
     padding: var(--padding);
     box-sizing: border-box;
-    width: min(100%, 50em);
+    width: min(100%, 45em);
   }
 </style>

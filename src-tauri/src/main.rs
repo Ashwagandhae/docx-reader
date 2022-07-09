@@ -57,6 +57,7 @@ impl<R: Runtime> WindowExt for Window<R> {
         }
     }
 }
+// TODO remember which window to focus on when opening multiple
 #[tauri::command]
 fn new_window(
     creates: Vec<Option<WindowCreate>>,

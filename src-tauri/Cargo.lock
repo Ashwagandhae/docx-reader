@@ -70,7 +70,6 @@ name = "app"
 version = "0.1.0"
 dependencies = [
  "cocoa",
- "proc-macro2",
  "quick-xml",
  "serde",
  "swift-rs",

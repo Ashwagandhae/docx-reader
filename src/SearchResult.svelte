@@ -1,6 +1,6 @@
 <script lang="ts">
   import SearchResultRun from './SearchResultRun.svelte';
-  import type { ParaType } from './types';
+  import type { ParaType, Query } from './types';
   import type Loader from './Loader.svelte';
 
   import { getContext, onMount } from 'svelte';
@@ -12,7 +12,7 @@
   export let queryIndex: number;
   export let selected: boolean;
 
-  let query: Writable<string> = getContext('query');
+  let query: Writable<Query> = getContext('query');
   let selectedQuery: Writable<{ paraIndex: number; charIndex: number }> =
     getContext('selectedQuery');
   let startIndex: number;
@@ -21,12 +21,19 @@
 
   let displayRuns = [];
   $: {
-    let lowerText = text.toLowerCase();
+    let formatText = text;
+    if (!$query.matchCase) {
+      formatText = text.toLowerCase();
+    }
     // will be zero because +1
     charIndex = -1;
     // get the specific index charIndex from queryIndex
     for (let i = 0; i < queryIndex + 1; i++) {
-      charIndex = lowerText.indexOf($query.toLowerCase(), charIndex + 1);
+      let queryText = $query.text;
+      if (!$query.matchCase) {
+        queryText = $query.text.toLowerCase();
+      }
+      charIndex = formatText.indexOf(queryText, charIndex + 1);
     }
     startIndex = Math.max(0, charIndex - 30);
     while (text[startIndex - 1] !== ' ') {
@@ -45,7 +52,10 @@
           startCutoff = i - startIndex;
         }
         let queryMatch = undefined;
-        if (charIndex + $query.length >= i && charIndex < i + run.text.length) {
+        if (
+          charIndex + $query.text.length >= i &&
+          charIndex < i + run.text.length
+        ) {
           queryMatch = charIndex - i;
         }
 
@@ -107,7 +117,7 @@
 <style>
   li {
     list-style-type: none;
-    padding: 0.5em;
+    padding: var(--padding);
     display: block;
     position: relative;
     border-radius: var(--border-radius);

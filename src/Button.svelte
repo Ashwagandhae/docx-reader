@@ -1,12 +1,16 @@
 <script>
   export let background = true;
   export let disabled = false;
+  export let small = false;
+  export let hoverShadow = false;
 </script>
 
 <button
   on:click
   on:mousedown|preventDefault={() => {}}
   class:background
+  class:small
+  class:hoverShadow
   {disabled}
 >
   <slot />
@@ -17,7 +21,7 @@
     border: none;
     border-radius: var(--border-radius);
     cursor: pointer;
-    line-height: 1rem;
+    line-height: 1;
     padding: 0.5rem;
     margin: 0;
     color: var(--text);
@@ -26,6 +30,15 @@
     pointer-events: auto;
     display: block;
     background: none;
+    font-size: 1rem;
+  }
+  button.hoverShadow {
+    transition: box-shadow var(--transition-speed);
+  }
+  button.small {
+    padding: 0.375rem;
+    height: 1.5rem;
+    font-size: 0.75rem;
   }
   button[disabled] {
     pointer-events: none;
@@ -36,6 +49,9 @@
   }
   button:hover {
     color: var(--text-strong);
+  }
+  button.hoverShadow:hover {
+    box-shadow: var(--shadow-small);
   }
   button.background:hover {
     background-color: var(--back-two-hover);

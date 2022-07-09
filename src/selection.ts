@@ -1,12 +1,9 @@
 import type { ParaType, RunType } from './types';
-export function getSelectionString(
-  parasElement: HTMLElement,
-  items: ParaType[]
-) {
+export function getSelectionNode(parasElement: HTMLElement, items: ParaType[]) {
   const selection = window.getSelection();
   const itemsElement = parasElement.querySelector('.items');
   if (!(selection.rangeCount && selection.containsNode(parasElement, true)))
-    return '';
+    return undefined;
   const range = selection.getRangeAt(0);
   let selectPos = {
     start: {
@@ -92,35 +89,37 @@ export function getSelectionString(
   let ret = document.createElement('div');
   for (let i = selectPos.start.para; i < selectPos.end.para + 1; i++) {
     let para = items[i];
+    let paraNode: HTMLElement;
     if (i == selectPos.start.para && i == selectPos.end.para) {
-      ret.appendChild(
-        getParaHTML(
-          para,
-          selectPos.start.run,
-          selectPos.end.run,
-          selectPos.start.offset,
-          selectPos.end.offset
-        )
+      paraNode = getParaHTML(
+        para,
+        selectPos.start.run,
+        selectPos.end.run,
+        selectPos.start.offset,
+        selectPos.end.offset
       );
     } else if (i == selectPos.start.para) {
-      ret.appendChild(
-        getParaHTML(
-          para,
-          selectPos.start.run,
-          null,
-          selectPos.start.offset,
-          null
-        )
+      paraNode = getParaHTML(
+        para,
+        selectPos.start.run,
+        null,
+        selectPos.start.offset,
+        null
       );
     } else if (i == selectPos.end.para) {
-      ret.appendChild(
-        getParaHTML(para, null, selectPos.end.run, null, selectPos.end.offset)
+      paraNode = getParaHTML(
+        para,
+        null,
+        selectPos.end.run,
+        null,
+        selectPos.end.offset
       );
     } else {
-      ret.appendChild(getParaHTML(para));
+      paraNode = getParaHTML(para);
     }
+    ret.appendChild(paraNode);
   }
-  return ret.innerHTML;
+  return ret;
 }
 
 export function getParaHTML(
@@ -186,8 +185,16 @@ function getRunHTML(run: RunType, offsetStart?: number, offsetEnd?: number) {
   runNode.innerText = text.replace(/\n/g, '').replace(/\r/g, '');
   return runNode;
 }
-export function copyToClipboard(html: string) {
-  const blob = new Blob([html], { type: 'text/html' });
-  const clipboardItem = new window.ClipboardItem({ 'text/html': blob });
+export function copyToClipboard(html: HTMLElement) {
+  let HTMLBlob = new Blob([html.innerHTML], { type: 'text/html' });
+  // add newlines between paragraphs for raw text
+  for (let child of html.children) {
+    child.appendChild(document.createTextNode('\n'));
+  }
+  let textBlob = new Blob([html.textContent], { type: 'text/plain' });
+  const clipboardItem = new window.ClipboardItem({
+    'text/html': HTMLBlob,
+    'text/plain': textBlob,
+  });
   navigator.clipboard.write([clipboardItem]);
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
   export let name: string;
-  export let size: string = '1rem';
+  export let size: string = '1em';
   let icons: { name: string; svg: string }[] = [
     {
       name: 'arrowRight',
@@ -115,6 +115,24 @@
       svg: `<path d="M42.929 71.2132L53.5356 81.8198C61.3461 89.6303 74.0094 89.6303 81.8199 81.8198V81.8198C89.6304 74.0093 89.6304 61.346 81.8199 53.5355L71.2133 42.9289" stroke-width="10" stroke-linecap="round"/>
 <path d="M28.7868 57.0711L18.1802 46.4645C10.3697 38.654 10.3697 25.9907 18.1802 18.1802V18.1802C25.9907 10.3697 38.654 10.3697 46.4645 18.1802L57.0711 28.7868" stroke-width="10" stroke-linecap="round"/>
 <path d="M37.272 37.2721L63.0814 63.0815" stroke-width="10" stroke-linecap="round"/>`,
+    },
+    {
+      name: 'ellipses',
+      svg: `<circle cx="19.25" cy="50.25" r="5.625" stroke-width="11.25"/>
+<circle cx="50.25" cy="50.25" r="5.625" stroke-width="11.25"/>
+<circle cx="81.25" cy="50.25" r="5.625" stroke-width="11.25"/>`,
+    },
+    {
+      name: 'funnel',
+      svg: `<line x1="25" y1="50" x2="75" y2="50" stroke-width="10" stroke-linecap="round"/>
+<line x1="40" y1="79" x2="60" y2="79" stroke-width="10" stroke-linecap="round"/>
+<line x1="10" y1="20" x2="90" y2="20" stroke-width="10" stroke-linecap="round"/>`,
+    },
+    {
+      name: 'copyBelow',
+      svg: `<path d="M20 73V73C17.2386 73 15 70.7614 15 68V62M65 14V14C65 11.2386 62.7614 9 60 9H25C19.4772 9 15 13.4772 15 19L15 31" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M35 33V33C35 30.2386 37.2386 28 40 28H75C80.5228 28 85 32.4772 85 38V82C85 87.5228 80.5228 92 75 92H45C39.4772 92 35 87.5228 35 82V82" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M73 47L49.5 73L26 47" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`,
     },
   ];
   let displayIcon: { name: string; svg: string };

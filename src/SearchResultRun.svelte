@@ -1,10 +1,9 @@
 <script lang="ts">
-  import type { StyleType } from './types';
+  import type { StyleType, Query } from './types';
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
-  import Mark from './Mark.svelte';
 
-  let query: Writable<string> = getContext('query');
+  let query: Writable<Query> = getContext('query');
   export let text: string;
   export let style: StyleType;
   export let queryMatch: number;
@@ -17,9 +16,9 @@
   class:highlight={style.highlight}
 >
   {#if queryMatch != undefined}
-    {text.slice(startCutoff, queryMatch)}<Mark
-      >{text.slice(queryMatch, $query.length + queryMatch)}</Mark
-    >{text.slice($query.length + queryMatch)}
+    {text.slice(startCutoff, queryMatch)}<mark
+      >{text.slice(queryMatch, $query.text.length + queryMatch)}</mark
+    >{text.slice($query.text.length + queryMatch)}
   {:else}
     {text.slice(startCutoff)}
   {/if}
@@ -44,5 +43,10 @@
   .highlight {
     background-color: var(--back-highlight);
     color: var(--text-strong);
+  }
+  mark {
+    background-color: var(--back-mark);
+    color: var(--text-strong);
+    border-radius: 0.3em;
   }
 </style>

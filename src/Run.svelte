@@ -3,7 +3,8 @@
   import { getContext } from 'svelte';
   import type { Writable } from 'svelte/store';
   import Mark from './Mark.svelte';
-  let query: Writable<string> = getContext('query');
+  import type { Query } from './types';
+  let query: Writable<Query> = getContext('query');
   export let text: string;
   export let style: StyleType;
   export let queryMatches: number[];
@@ -14,6 +15,11 @@
   // split text into parts that match and parts that dont
 
   function onQueryMatchesUpdate() {
+    if (queryMatches == null) {
+      splitText = [text];
+      matchesDict = [0];
+      return;
+    }
     splitText = [];
     matchesDict = [];
     let lastMatchEnd = 0;
@@ -22,13 +28,13 @@
         splitText.push(text.substring(lastMatchEnd, match));
         matchesDict.push(0);
       }
-      splitText.push(text.substring(match, match + $query.length));
+      splitText.push(text.substring(match, match + $query.text.length));
       if (index === selectedQueryMatch) {
         matchesDict.push(2);
       } else {
         matchesDict.push(1);
       }
-      lastMatchEnd = match + $query.length;
+      lastMatchEnd = match + $query.text.length;
     });
     if (text.length - lastMatchEnd > 0) {
       splitText.push(text.substring(lastMatchEnd));

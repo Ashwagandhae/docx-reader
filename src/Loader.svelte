@@ -22,6 +22,7 @@
   let muteObserver = false;
   let topLoadShowing = true;
   let bottomLoadShowing = true;
+  // TODO make it compatible with bad indexes
 
   export function reset() {
     items = [];
@@ -32,6 +33,61 @@
   }
   export function getItemsElement() {
     return itemsElement;
+  }
+
+  export function updateIndex() {
+    startIndex = items[0]?.index;
+    endIndex = items[items.length - 1]?.index + 1;
+  }
+
+  let skipRanges: { [id: number]: { start: number; end: number } } = [];
+  // sort ranges by there start and end (list because there can be duplicate)
+  let forwardRangeSort: { [start: number]: number[] } = {};
+  let backwardRangeSort: { [end: number]: number[] } = {};
+  export function addSkipRange(id: number, start: number, end: number) {
+    skipRanges[id] = { start, end };
+    if (forwardRangeSort.hasOwnProperty(start)) {
+      forwardRangeSort[start].push(id);
+    } else {
+      forwardRangeSort[start] = [id];
+    }
+    if (backwardRangeSort.hasOwnProperty(end)) {
+      backwardRangeSort[end].push(id);
+    } else {
+      backwardRangeSort[end] = [id];
+    }
+    // sort both forward and backward
+    forwardRangeSort = Object.keys(forwardRangeSort)
+      .sort()
+      .reduce((obj, key) => {
+        obj[key] = forwardRangeSort[key];
+        return obj;
+      }, {});
+    backwardRangeSort = Object.keys(backwardRangeSort)
+      .sort()
+      .reduce((obj, key) => {
+        obj[key] = backwardRangeSort[key];
+        return obj;
+      }, {});
+  }
+  export function removeSkipRange(id: number) {
+    let range = skipRanges[id];
+    // remove from forwardRangeSort
+    forwardRangeSort[range.start] = forwardRangeSort[range.start].filter(
+      (value) => value !== id
+    );
+    if (forwardRangeSort[range.start].length == 0) {
+      delete forwardRangeSort[range.start];
+    }
+    // remove from backwardRangeSort
+    backwardRangeSort[range.end] = backwardRangeSort[range.end].filter(
+      (value) => value !== id
+    );
+    if (backwardRangeSort[range.end].length == 0) {
+      delete backwardRangeSort[range.end];
+    }
+
+    delete skipRanges[id];
   }
 
   let observer = new IntersectionObserver(
@@ -140,6 +196,7 @@
 
     if (shouldTrackFocus) {
       currentFocusIndex = 0;
+      trackFocus();
       viewerElement.addEventListener('scroll', trackFocus);
     }
   });
@@ -150,27 +207,116 @@
       scrollTop: viewerElement.scrollTop,
     };
   }
+  export function setMuteObservers(state: boolean) {
+    muteObserver = state;
+  }
   onDestroy(function () {
     if (trackFocus) {
       viewerElement.removeEventListener('scroll', trackFocus);
     }
   });
   async function loadItemsTop(amount: number) {
-    let i = Math.max(0, startIndex - amount);
-    let j = Math.max(0, startIndex);
-    verbose && console.log('loading: ', i, j);
+    let loadRanges = [
+      {
+        start: startIndex - amount,
+        end: startIndex,
+      },
+    ];
+    verbose && console.log('original range', loadRanges[0]);
 
-    let newItems: any[] = await serverCommand(i, j);
-    startIndex -= newItems.length;
+    let current = loadRanges[0];
+    let keys: number[] = Object.keys(backwardRangeSort).map(Number);
+    keys.reverse();
+    for (let end of keys) {
+      let rangeIds = backwardRangeSort[end];
+      // if end of range is in current load range (i == end)
+      if (end > current.start && end < current.end) {
+        // find the range with biggest end start difference
+        let biggest = skipRanges[rangeIds[0]];
+        for (let j = 1; j < rangeIds.length; j++) {
+          let test = skipRanges[rangeIds[j]];
+          if (biggest.end - biggest.start < test.end - test.start) {
+            biggest = test;
+          }
+        }
+        verbose && console.log('removing range: ', biggest);
+        // split current into 2 and add it
+        let nextLen =
+          current.end - current.start - (current.end - (biggest.end + 1));
+        current.start = biggest.end + 1;
+        loadRanges.push({
+          start: biggest.start - nextLen,
+          end: biggest.start,
+        });
+        current = loadRanges[loadRanges.length - 1];
+        verbose && console.log('loadRanges: ', loadRanges);
+      }
+    }
+    loadRanges.reverse();
+    let newItems: any[] = [];
+    verbose &&
+      loadRanges.length != 1 &&
+      console.log('loading ranges: ', loadRanges);
+    for (let range of loadRanges) {
+      let start = Math.max(0, range.start);
+      let end = Math.max(0, range.end);
+      verbose && console.log('loading: ', start, end);
+      newItems = newItems.concat(await serverCommand(start, end));
+    }
+
+    startIndex -= loadRanges[loadRanges.length - 1].end - loadRanges[0].start;
+    verbose && console.log('newItems: ', newItems);
     return newItems;
   }
   async function loadItemsBottom(amount: number) {
-    let i = Math.max(0, endIndex);
-    let j = Math.max(0, endIndex + amount);
-    verbose && console.log('loading: ', i, j);
-    let newItems: any[] = await serverCommand(i, j);
+    let loadRanges = [
+      {
+        start: endIndex,
+        end: endIndex + amount,
+      },
+    ];
 
-    endIndex += newItems.length;
+    let current = loadRanges[0];
+    let keys: number[] = Object.keys(forwardRangeSort).map(Number);
+    for (let start of keys) {
+      let rangeIds = forwardRangeSort[start];
+      console.log(forwardRangeSort, start);
+      // if start of range is in current load range (i == start)
+      if (start > current.start && start < current.end) {
+        // find the range with biggest end start difference
+        let biggest = skipRanges[rangeIds[0]];
+        for (let j = 1; j < rangeIds.length; j++) {
+          let test = skipRanges[rangeIds[j]];
+          if (biggest.end - biggest.start < test.end - test.start) {
+            biggest = test;
+          }
+        }
+        // split current into 2 and add it
+        let nextLen =
+          current.end - current.start - (biggest.start - current.start);
+        current.end = biggest.start;
+        loadRanges.push({
+          start: biggest.end + 1,
+          end: biggest.end + 1 + nextLen,
+        });
+        current = loadRanges[loadRanges.length - 1];
+      }
+    }
+    let newItems: any[] = [];
+    verbose &&
+      loadRanges.length != 1 &&
+      console.log('loading ranges: ', loadRanges);
+
+    for (let range of loadRanges) {
+      let start = Math.max(0, range.start);
+      let end = Math.max(0, range.end);
+      verbose && console.log('loading: ', start, end);
+      newItems = newItems.concat(await serverCommand(start, end));
+    }
+
+    endIndex += loadRanges[loadRanges.length - 1].end - loadRanges[0].start;
+
+    verbose && console.log('newItems: ', newItems);
     return newItems;
   }
   async function extendItemsBottom() {
@@ -215,7 +361,6 @@
         canRemoveItem(items[i], child)
       ) {
         items.pop();
-        endIndex -= 1;
         itemsHeightChange -= child.clientHeight;
       } else {
         break;
@@ -223,13 +368,14 @@
     }
     let oldHeight = itemsElement.clientHeight;
     items = [...newItems, ...items];
+    endIndex = items[items.length - 1]?.index + 1;
     await tick();
     itemsHeightChange += oldHeight - itemsElement.clientHeight;
     viewerElement.scrollTop -= itemsHeightChange;
     await extendItemsTop();
     verbose && console.log(items);
   }
-  async function loadBottom() {
+  export async function loadBottom() {
     verbose && console.log('loading bottom');
     let newItems = await loadItemsBottom(fetchAmount);
     if (newItems.length == 0) return;
@@ -243,17 +389,18 @@
 
       if (childBottom < 0 && canRemoveItem(items[i], child)) {
         items.shift();
-        startIndex += 1;
         itemsHeightChange -= child.clientHeight;
       } else {
         break;
       }
     }
+
     items = [...items, ...newItems];
+    startIndex = items[0]?.index;
     await tick();
     viewerElement.scrollTop += itemsHeightChange;
     await extendItemsBottom();
-    verbose && console.log(items);
+    verbose && console.log('loaded items: ', items);
   }
 
   // prevent teleports from being called at the same time
@@ -313,7 +460,11 @@
       ) {
         verbose && console.log('doing fake teleport');
         verbose && console.trace();
-        viewerElement.scrollTop = item.offsetTop;
+        viewerElement.scrollTop = item.offsetTop + 1;
+        if (shouldTrackFocus) {
+          currentFocusIndex = 0;
+          focusUpdate();
+        }
         return true;
       }
     }
@@ -333,6 +484,10 @@
     verbose && console.log('set viewer scrollTop: ', viewerElement.scrollTop);
     muteObserver = false;
     verbose && console.log('unmuting obvservers');
+    if (shouldTrackFocus) {
+      currentFocusIndex = 0;
+      focusUpdate();
+    }
     return true;
   }
 </script>

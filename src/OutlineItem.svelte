@@ -2,12 +2,17 @@
   import type { RunType } from './types';
   import { getContext } from 'svelte';
   import type Loader from './Loader.svelte';
+  import Button from './Button.svelte';
+  import TurningArrow from './TurningArrow.svelte';
 
   export let outlineLevel: number = 0;
   $: indent = Math.min(outlineLevel, 3);
+  export let toggleFold: () => void;
   export let link: number;
   export let runs: RunType[];
+  export let index: number;
   export let selected: boolean = false;
+  export let foldedParent: boolean = false;
   let text = '';
   $: {
     text = '';
@@ -24,16 +29,36 @@
     getDocLoader().teleport(link);
   }}
   class:selected
+  class:foldedParent
+  class:hasButtons={outlineLevel < 3}
 >
-  <span class:bold={indent < 3} class:big={indent < 2}>
-    {text}
-  </span>
+  {#if outlineLevel < 3}
+    <div class="buttons">
+      <Button
+        on:click={(e) => {
+          e.stopPropagation();
+          toggleFold();
+        }}
+        small={true}
+        background={false}
+      >
+        <TurningArrow direction={foldedParent ? 'right' : 'down'} />
+      </Button>
+    </div>
+  {/if}
+
+  <div class="content">
+    <span class:bold={indent < 3} class:big={indent < 2}>
+      {text}
+    </span>
+  </div>
 </li>
 
 <style>
   li {
+    display: flex;
+    flex-direction: row;
     list-style-type: none;
-    padding: 0.5em;
     border-radius: var(--border-radius);
     cursor: default;
     min-height: 1em;
@@ -61,5 +86,20 @@
   }
   .big {
     font-size: 1.5em;
+  }
+  /* TODO find a better solution for outline item fold buttons */
+  .content {
+    padding: var(--padding);
+    padding-left: calc(var(--padding) * 2);
+  }
+  .hasButtons .content {
+    padding-left: 0;
+  }
+  .buttons {
+    opacity: 0;
+  }
+  li:hover .buttons,
+  li.foldedParent .buttons {
+    opacity: 1;
   }
 </style>
