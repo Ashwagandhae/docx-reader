@@ -92,6 +92,7 @@
     white-space: nowrap;
     resize: none;
     transition: box-shadow var(--transition-speed);
+    font-size: 1em;
   }
   textarea::placeholder {
     color: var(--text-weak);

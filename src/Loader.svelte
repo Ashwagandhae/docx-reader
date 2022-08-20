@@ -446,6 +446,7 @@
     }
   }
   export async function pureTeleport(index: number, force?: boolean) {
+    // TODO fix teleportation when zoomed out
     verbose && console.log('teleporting to: ', index);
     if (!force && items.length > 0 && index >= startIndex && index < endIndex) {
       // if this forces it to load anything, just do normal teleport

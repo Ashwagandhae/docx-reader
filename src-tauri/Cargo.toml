@@ -12,13 +12,13 @@ rust-version = "1.57"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.0.0", features = [] }
+tauri-build = { version = "1.0.4", features = [] }
 
 [dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.0.5", features = ["api-all"] }
 quick-xml = "0.22.0"
-serde = "1.0.137"
-tauri = { version = "1.0.0", features = ["api-all"] }
-
 zip = "0.6.2"
 cocoa = "0.24"
 
@@ -29,9 +29,3 @@ default = [ "custom-protocol" ]
 # this feature is used used for production builds where `devPath` points to the filesystem
 # DO NOT remove this
 custom-protocol = [ "tauri/custom-protocol" ]
-# macOS system libs
-[target.'cfg(target_os = "macos")'.dependencies]
-swift-rs = { git = "https://github.com/Brendonovich/swift-rs.git", branch = "autorelease" }
-
-[target.'cfg(target_os = "macos")'.build-dependencies]
-swift-rs = { git = "https://github.com/Brendonovich/swift-rs.git", branch = "autorelease", features = ["build"] }

@@ -3,21 +3,16 @@
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
-    "devPath": "http://localhost:8080",
-    "distDir": "../public"
+    "devPath": "http://localhost:5173",
+    "distDir": "../dist"
   },
   "package": {
-    "productName": "docx-reader",
+    "productName": "Docx Reader",
     "version": "0.1.0"
   },
   "tauri": {
     "allowlist": {
-      "all": true,
-      "dialog": {
-        "all": true,
-        "open": true,
-        "save": true
-      }
+      "all": true
     },
     "bundle": {
       "active": true,
@@ -34,7 +29,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.docxReaderAshwa.dev",
+      "identifier": "com.tauri.dev",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
