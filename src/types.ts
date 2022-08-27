@@ -42,8 +42,12 @@ export type Query = {
 };
 
 export enum Align {
-  Up,
-  Down,
+  Top,
+  Bottom,
   Left,
   Right,
+  TopLeft,
+  TopRight,
+  BottomLeft,
+  BottomRight,
 }

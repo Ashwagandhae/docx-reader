@@ -105,11 +105,11 @@
   {#if $query.text.length > 0}
     <div class="top" transition:searchAside class:showSearchResults>
       <div class="options">
-        <Panel icon={'funnel'} align={Align.Right} title={'Filter results'}>
+        <Panel icon={'funnel'} align={Align.TopRight} title={'Filter results'}>
           <Form>
-            <Checkbox label={'Match case'} bind:value={state.matchCase} />
+            <Checkbox labelText={'Match case'} bind:value={state.matchCase} />
             <Checkbox
-              label={'Only incude headers'}
+              labelText={'Only incude headers'}
               bind:value={state.onlyOutline}
             />
           </Form>

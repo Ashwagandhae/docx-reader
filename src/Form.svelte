@@ -4,6 +4,6 @@
   .top {
     display: flex;
     flex-direction: column;
-    gap: var(--padding);
+    gap: 0;
   }
 </style>

@@ -62,4 +62,7 @@
   button.background:active {
     background-color: var(--back-two-active);
   }
+  button:focus {
+    outline: 0;
+  }
 </style>

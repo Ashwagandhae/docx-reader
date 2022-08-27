@@ -22,7 +22,7 @@
   let muteObserver = false;
   let topLoadShowing = true;
   let bottomLoadShowing = true;
-  // TODO make it compatible with bad indexes
+  // TODO ? make it compatible with bad indexes
 
   export function reset() {
     items = [];
@@ -120,6 +120,8 @@
     }
   );
 
+  let topOffset = 40; // how much space to put at top when teleporting;
+
   function isFocused(index: number) {
     let childElement = itemsElement.children[index] as HTMLElement;
     return (
@@ -127,8 +129,8 @@
       childElement.offsetTop -
         viewerElement.scrollTop +
         childElement.offsetHeight >
-        0 &&
-      childElement.offsetTop - viewerElement.scrollTop < 0
+        topOffset &&
+      childElement.offsetTop - viewerElement.scrollTop < topOffset
     );
   }
   let currentFocusIndex = 0;
@@ -446,7 +448,6 @@
     }
   }
   export async function pureTeleport(index: number, force?: boolean) {
-    // TODO fix teleportation when zoomed out
     verbose && console.log('teleporting to: ', index);
     if (!force && items.length > 0 && index >= startIndex && index < endIndex) {
       // if this forces it to load anything, just do normal teleport
@@ -461,7 +462,7 @@
       ) {
         verbose && console.log('doing fake teleport');
         verbose && console.trace();
-        viewerElement.scrollTop = item.offsetTop + 1;
+        viewerElement.scrollTop = item.offsetTop - topOffset + 1;
         if (shouldTrackFocus) {
           currentFocusIndex = 0;
           focusUpdate();
@@ -481,7 +482,9 @@
       Math.max(
         (itemsElement.children[0] as HTMLElement)?.offsetTop,
         loaderHeight
-      ) + 1;
+      ) -
+      topOffset +
+      1;
     verbose && console.log('set viewer scrollTop: ', viewerElement.scrollTop);
     muteObserver = false;
     verbose && console.log('unmuting obvservers');

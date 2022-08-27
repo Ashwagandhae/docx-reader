@@ -222,4 +222,7 @@
     padding: 0;
     padding-top: 2em;
   }
+  .para::selection {
+    background: hsl(var(--hue), 70%, 50%, 0.3);
+  }
 </style>

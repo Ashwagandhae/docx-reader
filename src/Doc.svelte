@@ -196,14 +196,11 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    transition: padding var(--transition-speed);
+    padding: 0;
+    transition: padding var(--transition-speed) ease;
   }
   .isResizing .paras-container {
     transition: none;
-  }
-  .paras-container {
-    padding: 0;
-    transition: padding var(--transition-speed);
   }
   .showOutline .paras-container {
     padding-left: var(--sidebar-width);
@@ -218,6 +215,6 @@
   .paras {
     padding: var(--padding);
     box-sizing: border-box;
-    width: min(100%, 45em);
+    width: min(45em, 100%);
   }
 </style>

@@ -31,24 +31,22 @@
   class:selected
   class:foldedParent
   class:hasButtons={outlineLevel < 3}
+  class:bold={indent < 3}
+  class:big={indent < 2}
 >
   {#if outlineLevel < 3}
-    <div class="buttons">
-      <Button
-        on:click={(e) => {
-          e.stopPropagation();
-          toggleFold();
-        }}
-        small={true}
-        background={false}
-      >
-        <TurningArrow direction={foldedParent ? 'right' : 'down'} />
-      </Button>
-    </div>
+    <button
+      class="folder"
+      on:click={(e) => {
+        e.stopPropagation();
+        toggleFold();
+      }}
+    >
+      <TurningArrow direction={foldedParent ? 'left' : 'down'} />
+    </button>
   {/if}
-
   <div class="content">
-    <span class:bold={indent < 3} class:big={indent < 2}>
+    <span>
       {text}
     </span>
   </div>
@@ -63,6 +61,7 @@
     cursor: default;
     min-height: 1em;
     font-size: 0.8em;
+    height: min-content;
   }
   li:hover {
     background-color: var(--back-two-hover);
@@ -87,19 +86,38 @@
   .big {
     font-size: 1.5em;
   }
-  /* TODO find a better solution for outline item fold buttons */
   .content {
     padding: var(--padding);
-    padding-left: calc(var(--padding) * 2);
   }
-  .hasButtons .content {
-    padding-left: 0;
-  }
-  .buttons {
+  .folder {
     opacity: 0;
+    position: absolute;
+    right: var(--padding);
+    color: var(--text);
+    background: none;
+    outline: none;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    padding: 0.5rem;
+    line-height: 1;
+
+    font-size: 1rem;
+    border-radius: 0 var(--border-radius) var(--border-radius) 0;
   }
-  li:hover .buttons,
-  li.foldedParent .buttons {
+  li.foldedParent .folder {
     opacity: 1;
+    background: var(--back-two);
+  }
+  li:hover .folder {
+    opacity: 1;
+    background: var(--back-two-hover);
+    /* dont transition out */
+    transition: opacity var(--transition-speed);
+  }
+  li:active > .folder,
+  li:hover.selected > .folder {
+    opacity: 1;
+    background-color: var(--back-two-active);
   }
 </style>

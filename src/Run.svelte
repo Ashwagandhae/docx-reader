@@ -71,6 +71,9 @@
     display: inline;
     border-radius: 0.3em;
   }
+  span::selection {
+    background: hsl(var(--hue), 70%, 50%, 0.3);
+  }
   .bold {
     font-weight: var(--bold);
     color: var(--text-strong);

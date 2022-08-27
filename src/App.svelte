@@ -5,6 +5,8 @@
   import Doc from './Doc.svelte';
   import Outline from './Outline.svelte';
   import Topbar from './Topbar.svelte';
+  import ColorPicker from './ColorPicker.svelte';
+  import Panel from './Panel.svelte';
   import SearchResults from './SearchResults.svelte';
   import { appWindow, WebviewWindow } from '@tauri-apps/api/window';
   import { listen } from '@tauri-apps/api/event';
@@ -22,11 +24,25 @@
   });
   // listen for changes in system settings
   let colorThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  let updateColorTheme = function () {
+  let updateDarkLightTheme = function () {
     document.body.classList.toggle('dark', colorThemeMediaQuery.matches);
   };
-  updateColorTheme();
-  colorThemeMediaQuery.addEventListener('change', updateColorTheme);
+  updateDarkLightTheme();
+  colorThemeMediaQuery.addEventListener('change', updateDarkLightTheme);
+
+  // temp
+  let usingHue = false;
+  let hue = 120;
+  $: if (usingHue) {
+    document.body.classList.add('hue');
+  } else {
+    document.body.classList.remove('hue');
+  }
+  $: if (usingHue) {
+    document.body.style.setProperty('--hue', hue + 'deg');
+  } else {
+    document.body.style.removeProperty('--hue');
+  }
 
   async function chooseFile() {
     let path: string = await invoke('open_dialog');
@@ -211,6 +227,7 @@
       bind:state={states.searchResults}
     />
   </aside>
+  <ColorPicker bind:usingHue bind:hue />
 </main>
 
 <style>
@@ -276,13 +293,14 @@
     --padding-small: 5px;
     --topbar-height: calc(2em + var(--padding));
     --gap: 0px;
-    --bold: 600;
+    --bold: 550;
     --border-radius: 10px;
     --sidebar-width: max(150px, 15vw);
     --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
       Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
       'Segoe UI Symbol';
     --transition-speed: 300ms;
+    --hue: 195;
   }
   :global(body.dark) {
     --back: hsl(0, 0%, 15%);
@@ -299,16 +317,16 @@
     --back-mark-selected-c: 30, 80%, 40%;
     --back-mark-selected: hsl(var(--back-mark-selected-c));
 
-    --text: hsl(0, 0%, 75%);
     --text-weak: hsl(0, 0%, 50%);
+    --text: hsl(0, 0%, 75%);
     --text-strong: hsl(0, 0%, 85%);
 
-    --shadow: rgba(0, 0, 0, 0.4) 0px 7px 29px 0px;
-    --shadow-small: rgba(0, 0, 0, 0.2) 0px 7px 10px 0px;
+    --shadow: hsl(0, 0%, 0%, 0.4) 0px 7px 29px 0px;
+    --shadow-small: hsl(0, 0%, 0%, 0.2) 0px 7px 10px 0px;
   }
   :global(body) {
     --back: hsl(0, 0%, 100%);
-    --back-hover: hsl(0, 0%, 97%);
+    --back-hover: hsl(0, 0%, 96%);
     --back-active: hsl(0, 0%, 94%);
 
     --back-two: hsl(0, 0%, 95%);
@@ -321,11 +339,45 @@
     --back-mark-selected-c: 40, 100%, 59%;
     --back-mark-selected: hsl(var(--back-mark-selected-c));
 
-    --text: hsl(0, 0%, 30%);
     --text-weak: hsl(0, 0%, 50%);
+    --text: hsl(0, 0%, 30%);
     --text-strong: hsl(0, 0%, 10%);
 
-    --shadow: rgba(0, 0, 0, 0.2) 0px 7px 29px 0px;
-    --shadow-small: rgba(0, 0, 0, 0.05) 0px 7px 10px 0px;
+    --shadow: hsl(0, 0%, 0%, 0.2) 0px 7px 29px 0px;
+    --shadow-small: hsl(0, 0%, 0%, 0.05) 0px 7px 10px 0px;
+  }
+  :global(body.dark.hue) {
+    --back: hsl(var(--hue), 20%, 15%);
+    --back-hover: hsl(var(--hue), 22%, 17%);
+    --back-active: hsl(var(--hue), 25%, 20%);
+
+    --back-two: hsl(var(--hue), 20%, 20%);
+    --back-two-hover: hsl(var(--hue), 22%, 27%);
+    --back-two-active: hsl(var(--hue), 25%, 34%);
+    --back-highlight: hsl(var(--hue), 50%, 30%);
+
+    --text-weak: hsl(var(--hue), 35%, 50%);
+    --text: hsl(var(--hue), 40%, 75%);
+    --text-strong: hsl(var(--hue), 20%, 85%);
+
+    --shadow: hsl(var(--hue), 30%, 20%, 0.5) 0px 7px 29px 0px;
+    --shadow-small: hsl(var(--hue), 30%, 20%, 0.25) 0px 7px 10px 0px;
+  }
+  :global(body.hue) {
+    --back: hsl(var(--hue), 60%, 90%);
+    --back-hover: hsl(var(--hue), 65%, 85%);
+    --back-active: hsl(var(--hue), 70%, 80%);
+
+    --back-two: hsl(var(--hue), 70%, 86%);
+    --back-two-hover: hsl(var(--hue), 75%, 80%);
+    --back-two-active: hsl(var(--hue), 80%, 75%);
+    --back-highlight: hsl(var(--hue), 100%, 80%);
+
+    --text-weak: hsl(var(--hue), 35%, 50%);
+    --text: hsl(var(--hue), 40%, 35%);
+    --text-strong: hsl(var(--hue), 30%, 20%);
+
+    --shadow: hsl(var(--hue), 100%, 40%, 0.2) 0px 7px 29px 0px;
+    --shadow-small: hsl(var(--hue), 100%, 40%, 0.05) 0px 7px 10px 0px;
   }
 </style>

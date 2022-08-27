@@ -134,6 +134,18 @@
 <path d="M35 33V33C35 30.2386 37.2386 28 40 28H75C80.5228 28 85 32.4772 85 38V82C85 87.5228 80.5228 92 75 92H45C39.4772 92 35 87.5228 35 82V82" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M73 47L49.5 73L26 47" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`,
     },
+    {
+      name: 'copyAbove',
+      svg: `<path d="M20 73V73C17.2386 73 15 70.7614 15 68V62M65 14V14C65 11.2386 62.7614 9 60 9H25C19.4772 9 15 13.4772 15 19L15 31" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M35 33V33C35 30.2386 37.2386 28 40 28H75C80.5228 28 85 32.4772 85 38V82C85 87.5228 80.5228 92 75 92H45C39.4772 92 35 87.5228 35 82V82" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M73 47L49.5 73L26 47" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M73 73L49.5 81.5L26 73" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>`,
+    },
+    {
+      name: 'rainbow',
+      svg: `<path d="M28 68C28 36 70 36 70 68" stroke-width="10" stroke-linecap="round"/>
+<path d="M8 68C8 9.33333 92 9.33333 92 68" stroke-width="10" stroke-linecap="round"/>`,
+    },
   ];
   let displayIcon: { name: string; svg: string };
   function findIcon() {
@@ -160,5 +172,6 @@
     margin: auto;
     color: inherit;
     stroke: currentColor;
+    pointer-events: none;
   }
 </style>

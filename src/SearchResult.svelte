@@ -3,7 +3,7 @@
   import type { ParaType, Query } from './types';
   import type Loader from './Loader.svelte';
 
-  import { getContext, onMount } from 'svelte';
+  import { getContext, onMount, tick } from 'svelte';
   import type { Writable } from 'svelte/store';
 
   export let link: number;
@@ -70,8 +70,16 @@
     }
   }
   let element: HTMLElement;
-  function doTeleport() {
+  async function doTeleport() {
     getDocLoader().teleport(para.index);
+    if (selected) {
+      // reset query
+      selectedQuery.set({
+        paraIndex: null,
+        charIndex: null,
+      });
+      await tick();
+    }
     selectedQuery.set({ paraIndex: para.index, charIndex: charIndex });
   }
   $: {

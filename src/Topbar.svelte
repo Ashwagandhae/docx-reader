@@ -24,6 +24,7 @@
 
   let isFullscreen: Writable<boolean> = getContext('isFullscreen');
   // TODO fade out topbar when not needed
+  // TODO stop link from being focused on page load
 </script>
 
 <div
@@ -37,11 +38,9 @@
 >
   <section class="outline" data-tauri-drag-region>
     {#if showOutline}
-      <div transition:fade={{ duration: 300 }}>
-        <Button background={false} on:click={alignOutlineFocus}>
-          <Icon name="link" />
-        </Button>
-      </div>
+      <Button background={false} on:click={alignOutlineFocus}>
+        <Icon name="link" />
+      </Button>
     {/if}
     <Button on:click={() => (showOutline = !showOutline)} background={false}>
       <TurningArrow direction={showOutline ? 'left' : 'right'} />

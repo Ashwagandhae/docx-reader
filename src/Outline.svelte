@@ -137,7 +137,6 @@
   }
   // remove all folded items from itemsElement
   function itemsUpdate() {
-    // TODO make it not remove them 1 by 1 (aka fix loader.sveltes range handling, specifically where only end intersects)
     let ret = [];
     for (let item of items) {
       if (!foldedChildren.hasOwnProperty(item.index)) {
