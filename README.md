@@ -1,48 +1,76 @@
-# Svelte + TS + Vite
+# Docx Reader v0.0.0
 
-This template should help get you started developing with Svelte and TypeScript in Vite.
+This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https://svelte.dev). You can open .docx files in it. Although many features are missing, like font, color, editing, etc, it opens documents much faster than word (~3x in dev server, ~28x faster after build). This means it can open a 4 MB Kritique Masterfile in ~1 second.
 
-## Recommended IDE Setup
+# Features
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode).
+- Bold, underline, highlight, font size
+- Outline
+- Blazingly fast startup
 
-## Need an official Svelte framework?
+# Unfeatures
 
-Check out [SvelteKit](https://github.com/sveltejs/kit#readme), which is also powered by Vite. Deploy anywhere with its serverless-first approach and adapt to various platforms, with out of the box support for TypeScript, SCSS, and Less, and easily-added support for mdsvex, GraphQL, PostCSS, Tailwind CSS, and more.
+### Features it doesn't have
 
-## Technical considerations
+- Ability to edit
+- Pages
+- Zoom
+- Search
+- Font, color, highlight color
+- Multi-window support
 
-**Why use this over SvelteKit?**
+# Download
 
-- It brings its own routing solution which might not be preferable for some users.
-- It is first and foremost a framework that just happens to use Vite under the hood, not a Vite app.
-  `vite dev` and `vite build` wouldn't work in a SvelteKit environment, for example.
+## MacOS
 
-This template contains as little as possible to get started with Vite + TypeScript + Svelte, while taking into account the developer experience with regards to HMR and intellisense. It demonstrates capabilities on par with the other `create-vite` templates and is a good starting point for beginners dipping their toes into a Vite + Svelte project.
+1. [Click here](<https://ashwagandhae.github.io/docx-reader/Docx Reader_0.1.0_x64.dmg>) to download the dmg
+2. Double click the dmg
+3. Drag the app into Applications folder
+4. Right click and click open (it won't let you open otherwise)
 
-Should you later need the extended capabilities and extensibility provided by SvelteKit, the template has been structured similarly to SvelteKit so that it is easy to migrate.
+## Windows & Linux
 
-**Why `global.d.ts` instead of `compilerOptions.types` inside `jsconfig.json` or `tsconfig.json`?**
+Not supported right now (even though Tauri is literally cross platform)
 
-Setting `compilerOptions.types` shuts out all other types not explicitly listed in the configuration. Using triple-slash references keeps the default TypeScript setting of accepting type information from the entire workspace, while also adding `svelte` and `vite/client` type information.
+# Or build from source
 
-**Why include `.vscode/extensions.json`?**
+This will work for Macos, Windows and Linux
 
-Other templates indirectly recommend extensions via the README, but this file allows VS Code to prompt the user to install the recommended extension upon opening the project.
+1. [Set up Tauri dependencies](https://tauri.studio/v1/guides/getting-started/prerequisites/)
+2. Clone this repository and install packages
 
-**Why enable `allowJs` in the TS template?**
-
-While `allowJs: false` would indeed prevent the use of `.js` files in the project, it does not prevent the use of JavaScript syntax in `.svelte` files. In addition, it would force `checkJs: false`, bringing the worst of both worlds: not being able to guarantee the entire codebase is TypeScript, and also having worse typechecking for the existing JavaScript. In addition, there are valid use cases in which a mixed codebase may be relevant.
-
-**Why is HMR not preserving my local component state?**
-
-HMR state preservation comes with a number of gotchas! It has been disabled by default in both `svelte-hmr` and `@sveltejs/vite-plugin-svelte` due to its often surprising behavior. You can read the details [here](https://github.com/rixo/svelte-hmr#svelte-hmr).
-
-If you have state that's important to retain within a component, consider creating an external store which would not be replaced by HMR.
-
-```ts
-// store.ts
-// An extremely simple external store
-import { writable } from 'svelte/store'
-export default writable(0)
 ```
+git clone https://github.com/Ashwagandhae/docx-reader
+cd docx-reader
+npm install
+```
+
+3. Start the development server (will be slow the first time because of rust packages)
+
+```
+npm run tauri dev
+```
+
+3. Or actually build the app (will be slow all the time)
+
+```
+npm run tauri build
+```
+
+# Dependencies explained
+
+## Why Tauri?
+
+[Tauri](https://tauri.studio) is basically a newer [Electron](https://www.electronjs.org/), but with much better performance. The fact that it uses [Rust](https://www.rust-lang.org/) in the backend allows it to parse the docx files fast.
+
+## Why Svelte?
+
+My Vue is that [Svelte](https://svelte.dev) is more Reactive, and it's easier to Express my ideas. I can see the Angle of it being a pretty new framework, but I think it's the Next big thing, and will probably become the Backbone of web development.
+
+## Why quick_xml?
+
+[quick_xml](https://docs.rs/quick-xml/latest/quick_xml/) is the fastest rust XML parsing library I could find. Instead of making a struct representation of the XML, it streams them as events. Docx files are actually just zipped up folders of XML files, you can [read more here](https://www.toptal.com/xml/an-informal-introduction-to-docx).
+
+## Why zip?
+
+[zip](https://docs.rs/zip/latest/zip/) is the first unzipping library I found. Docx files are actually just zipped up folders of XML files, so I needed to unzip them.
