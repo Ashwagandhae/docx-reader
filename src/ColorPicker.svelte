@@ -5,14 +5,27 @@
   import Form from './Form.svelte';
   import Checkbox from './Checkbox.svelte';
   import { Align } from './types';
+  import { clickOutside } from './outclick';
   export let usingHue: boolean;
   export let hue: number = 0;
   let showingSettings = false;
+  let open = false;
   import { accordion } from './transition';
 </script>
 
-<div class="top" style={`--hue:${hue}`} class:usingHue>
-  <Panel title={'Change window color'} align={Align.BottomRight} icon="rainbow">
+<div
+  class="top"
+  style={`--hue:${hue}`}
+  class:usingHue
+  use:clickOutside
+  on:outclick={() => (open = false)}
+>
+  <Panel
+    title={'Change window color'}
+    align={Align.BottomRight}
+    icon="rainbow"
+    bind:open
+  >
     <div class="content">
       <div
         class="selector"

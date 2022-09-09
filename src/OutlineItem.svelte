@@ -116,7 +116,7 @@
     transition: opacity var(--transition-speed);
   }
   li:active > .folder,
-  li:hover.selected > .folder {
+  li.selected:hover > .folder {
     opacity: 1;
     background-color: var(--back-two-active);
   }

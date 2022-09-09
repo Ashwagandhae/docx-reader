@@ -6,7 +6,7 @@
   export let icon = 'ellipses';
   export let align: Align = Align.Left;
   export let title = 'Panel';
-  let open = false;
+  export let open = false;
   // TODO add panel animations
 </script>
 

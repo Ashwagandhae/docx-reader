@@ -4,6 +4,7 @@ use tauri::{Runtime, State, Window};
 
 use cocoa::appkit::NSWindowTitleVisibility;
 use cocoa::appkit::{NSWindow, NSWindowStyleMask};
+use open;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -16,8 +17,13 @@ pub struct Payload {
 pub struct WindowCreate {
   pub file_path: String,
 }
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct WindowReadyInfo {
+  pub file_path: Option<String>,
+  pub label: String,
+}
 pub struct WindowsCreateState {
-  pub label: u32,
+  pub label_counter: u32,
   pub last_focus: String,
   pub ready: HashMap<String, WindowCreate>,
 }
@@ -27,15 +33,33 @@ pub struct WindowsCreate(pub Mutex<WindowsCreateState>);
 pub fn get_window_fullscreen_state(window: tauri::Window) -> bool {
   window.is_fullscreen().unwrap_or(false)
 }
+// #[tauri::command]
+// pub async fn open_dialog() -> Result<PathBuf, bool> {
+//   if let Some(path) = FileDialogBuilderBlocking::new()
+//     .add_filter("Word Document", &["docx"])
+//     .pick_file()
+//   {
+//     Ok(path)
+//   } else {
+//     Err(false)
+//   }
+// }
 #[tauri::command]
-pub async fn open_dialog() -> Result<PathBuf, bool> {
-  if let Some(path) = FileDialogBuilderBlocking::new()
+pub async fn open_dialog() -> Result<Vec<PathBuf>, bool> {
+  if let Some(paths) = FileDialogBuilderBlocking::new()
     .add_filter("Word Document", &["docx"])
-    .pick_file()
+    .pick_files()
   {
-    Ok(path)
+    Ok(paths)
   } else {
     Err(false)
+  }
+}
+#[tauri::command]
+pub fn open_in_word(path: String) {
+  match open::that(&path) {
+    Ok(()) => println!("opened {} in word", path),
+    Err(e) => println!("error opening {} in word: {}", path, e),
   }
 }
 
@@ -71,16 +95,23 @@ impl<R: Runtime> WindowExt for Window<R> {
   }
 }
 #[tauri::command]
-pub fn window_ready(
-  window: Window,
-  windows_create: State<'_, WindowsCreate>,
-) -> Option<WindowCreate> {
+pub fn window_ready(window: Window, windows_create: State<'_, WindowsCreate>) -> WindowReadyInfo {
   window.show().unwrap();
   // if window has creation info
   let windows_create = windows_create.0.lock().unwrap();
   match windows_create.ready.get(window.label()) {
-    Some(create) => return Some(create.clone()),
-    None => return None,
+    Some(create) => {
+      return WindowReadyInfo {
+        file_path: Some(create.file_path.clone()),
+        label: window.label().to_string(),
+      }
+    }
+    None => {
+      return WindowReadyInfo {
+        file_path: None,
+        label: window.label().to_string(),
+      }
+    }
   }
 }
 #[tauri::command]

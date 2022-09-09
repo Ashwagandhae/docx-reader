@@ -280,6 +280,13 @@ impl Document {
                                 self.get_style_id(&mut current_style, &id_unwrapped);
                             }
                         }
+                        b"w:outlineLvl" => {
+                            let outline_level = Self::get_attr(&reader, e, b"w:val");
+                            if outline_level.is_some() {
+                                current_para.outline_level =
+                                    Some(outline_level.unwrap().parse::<u32>().unwrap());
+                            }
+                        }
                         _ => (),
                     };
                 }

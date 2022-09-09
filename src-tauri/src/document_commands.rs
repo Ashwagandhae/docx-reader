@@ -52,14 +52,14 @@ pub fn load_file(
   let mut search_results_dict = search_results.0.lock().unwrap();
   let mut search_results = search_results_dict.get_mut(label).unwrap();
   // first unload file
-  println!("unloading current file");
+  println!("unloading current file in window {:?}", label);
   paras.clear();
   outline_paras.clear();
   search_results.results.clear();
   search_results.last_query = None;
   search_results.para_texts.clear();
   // then load new one
-  println!("loading {:?} file", path);
+  println!("loading {:?} file in window {:?}", path, label);
   let mut doc = Document::new();
   doc.load_file(&path);
   for para in doc.paras {
@@ -73,7 +73,7 @@ pub fn load_file(
   for outline_para in doc.outline_paras {
     outline_paras.push(outline_para);
   }
-  println!("done loading");
+  println!("done loading file in window {:?}", label);
   true
 }
 #[tauri::command]

@@ -31,6 +31,12 @@
     display: block;
     background: none;
     font-size: 1rem;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    white-space: nowrap;
   }
   button.hoverShadow {
     transition: box-shadow var(--transition-speed);

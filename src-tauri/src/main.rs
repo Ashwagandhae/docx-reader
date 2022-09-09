@@ -15,7 +15,7 @@ mod app_commands;
 mod document_commands;
 mod menu;
 
-use app_commands::{Payload, WindowCreate, WindowsCreate, WindowsCreateState};
+use app_commands::{WindowCreate, WindowsCreate, WindowsCreateState};
 use document_commands::{OutlineParas, Paras, SearchResults, SearchResultsState};
 
 use menu::get_menu;
@@ -81,8 +81,8 @@ fn new_window(
     let mut pos = window.inner_position().unwrap();
     let size = window.inner_size().unwrap();
     for create in creates {
-        let label = "normal".to_string() + &windows_create.label.to_string();
-        windows_create.label += 1;
+        let label = "normal".to_string() + &windows_create.label_counter.to_string();
+        windows_create.label_counter += 1;
 
         paras_dict.insert(label.clone(), Vec::new());
         outline_paras_dict.insert(label.clone(), Vec::new());
@@ -115,20 +115,20 @@ fn new_window(
             .visible(false)
             .position((pos.x / 2).into(), (pos.y / 2).into())
             .inner_size((size.width / 2).into(), (size.height / 2).into())
-            .min_inner_size(300.0, 200.0)
-            .build()
-            .unwrap();
-        new_window.hide().unwrap();
+            .min_inner_size(300.0, 200.0);
+
+        // TODO: only focus last window
+        let win = new_window.build().unwrap();
+        #[cfg(target_os = "macos")]
+        {
+            win.set_transparent_titlebar(true);
+        }
         if create.is_some() {
             // set creation info
             windows_create.ready.insert(label.clone(), create.unwrap());
         }
         // set last focus for quickly created windows
         windows_create.last_focus = label;
-    }
-    #[cfg(target_os = "macos")]
-    {
-        // win.set_transparent_titlebar(true);
     }
     Ok(())
 }
@@ -140,7 +140,7 @@ fn main() {
             win.hide().unwrap();
             #[cfg(target_os = "macos")]
             {
-                // win.set_transparent_titlebar(true);
+                win.set_transparent_titlebar(true);
             }
             app.listen_global("tauri://focus", |event| {
                 println!("{:?}", event.payload());
@@ -152,18 +152,12 @@ fn main() {
         .on_menu_event(|event| match event.menu_item_id() {
             "open" => FileDialogBuilder::new()
                 .add_filter("Word Document", &["docx"])
-                .pick_file(move |path| {
-                    if path.is_some() {
+                .pick_files(move |paths| {
+                    if paths.is_some() {
                         println!("opening file in window: {:?}", event.window().label());
                         event
                             .window()
-                            .emit_to(
-                                event.window().label(),
-                                "load_file",
-                                Payload {
-                                    message: path.unwrap().to_string_lossy().into_owned(),
-                                },
-                            )
+                            .emit_to(event.window().label(), "load_files", paths)
                             .unwrap()
                     }
                 }),
@@ -175,7 +169,7 @@ fn main() {
                 ) {
                     Ok(()) => (),
                     Err(e) => {
-                        println!("Couldn't open URL: {}", e);
+                        println!("couldn't open URL: {}", e);
                     }
                 }
             }
@@ -190,7 +184,7 @@ fn main() {
             Vec::new(),
         )]))))
         .manage(WindowsCreate(Mutex::new(WindowsCreateState {
-            label: 0,
+            label_counter: 0,
             last_focus: "main".into(),
             ready: HashMap::new(),
         })))
@@ -214,6 +208,7 @@ fn main() {
             app_commands::get_window_fullscreen_state,
             app_commands::window_ready,
             app_commands::window_focus,
+            app_commands::open_in_word,
             new_window,
         ])
         .run(tauri::generate_context!())

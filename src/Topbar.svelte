@@ -8,6 +8,7 @@
   import { listen } from '@tauri-apps/api/event';
   import { fade } from 'svelte/transition';
   import type { Query } from './types';
+  import { invoke } from '@tauri-apps/api';
 
   export let showOutline: boolean;
   export let chooseFile: () => void;
@@ -15,6 +16,10 @@
   export let showSearchResults: boolean;
   export let matchCase: boolean;
   export let onlyOutline: boolean;
+
+  function openInWord() {
+    invoke('open_in_word', { path: $fileInfo.path });
+  }
 
   let query: Writable<Query> = getContext('query');
   let zoom: Writable<number> = getContext('zoom');
@@ -25,6 +30,18 @@
   let isFullscreen: Writable<boolean> = getContext('isFullscreen');
   // TODO fade out topbar when not needed
   // TODO stop link from being focused on page load
+  // const resizeObserver = new ResizeObserver((entries) => {
+  //   for (const entry of entries) {
+  //     if (entry.contentRect.height < 628) {
+  //       collapseLevel = 1;
+  //     } else {
+  //       collapseLevel = 0;
+  //     }
+  //   }
+  // });
+  // let generalElement: HTMLElement;
+
+  // resizeObserver.observe(document.querySelector('div'));
 </script>
 
 <div
@@ -63,7 +80,18 @@
           No open file
         {/if}
       </h1>
-      <Button on:click={chooseFile} hoverShadow>Open</Button>
+      {#if $fileInfo.open}
+        <Button on:click={chooseFile} hoverShadow
+          ><Icon name="add" />Open
+        </Button>
+        <Button on:click={openInWord} hoverShadow
+          ><Icon name="upload" />Open in word</Button
+        >
+      {:else}
+        <Button on:click={chooseFile} hoverShadow
+          ><Icon name="add" />Open</Button
+        >
+      {/if}
     </div>
   </section>
   <section class="search" data-tauri-drag-region>
@@ -120,8 +148,7 @@
   /* TODO make reactive to traffic lights when invis topbar */
   .outline {
     justify-content: flex-end;
-    /* width: 100px; */
-    width: 40px;
+    width: 100px;
     transition: width 300ms;
   }
 
@@ -134,6 +161,7 @@
     align-items: center;
     justify-content: center;
     width: 100%;
+    overflow: hidden;
   }
   section.general > .start {
     display: flex;

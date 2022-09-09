@@ -16,10 +16,16 @@
   import type { OutlineParaType, ParaType, LoaderState } from './types';
   import type { Writable } from 'svelte/store';
 
+  let windowLabel: string = null;
   onMount(async () => {
-    let ready: { file_path: string } = await invoke('window_ready', {});
-    if (ready != null) {
-      if (ready.file_path != null) loadFile(ready.file_path);
+    let readyInfo: { file_path: string; label: string } = await invoke(
+      'window_ready',
+      {}
+    );
+    if (readyInfo != null) {
+      if (readyInfo.file_path != null) loadFile(readyInfo.file_path);
+      windowLabel = readyInfo.label;
+      console.log('window ready', readyInfo);
     }
   });
   // listen for changes in system settings
@@ -45,46 +51,75 @@
   }
 
   async function chooseFile() {
-    let path: string = await invoke('open_dialog');
-    if (!path) return;
-    loadFile(path);
+    let paths: string[] = await invoke('open_dialog');
+    loadFiles(paths);
   }
   let droppingFile = false;
-  listen('tauri://file-drop-hover', () => {
-    droppingFile = true;
-  });
-  listen('tauri://file-drop-cancelled', () => {
-    droppingFile = false;
-  });
-  listen('tauri://file-drop', (event: { payload: string[] }) => {
-    droppingFile = false;
-    if (event.payload.length > 0) {
-      loadFile(event.payload[0]);
-    }
-    if (event.payload.length > 1) {
-      invoke('new_window', {
-        creates: event.payload
-          .slice(1, event.payload.length)
-          .map(function (path) {
-            return {
-              file_path: path,
-            };
-          }),
-      });
+  listen('tauri://file-drop-hover', (event: { windowLabel: string }) => {
+    if (event.windowLabel == windowLabel) {
+      droppingFile = true;
     }
   });
-  listen('load_file', (event: { payload: { message: string } }) => {
-    loadFile(event.payload.message as string);
+  listen('tauri://file-drop-cancelled', (event: { windowLabel: string }) => {
+    if (event.windowLabel == windowLabel) {
+      droppingFile = false;
+    }
   });
-  listen('tauri://focus', (event: { payload: boolean }) => {
-    event.payload && invoke('window_focus', {});
+  listen(
+    'tauri://file-drop',
+    (event: { payload: string[]; windowLabel: string }) => {
+      if (event.windowLabel == windowLabel) {
+        droppingFile = false;
+        loadFiles(event.payload);
+      }
+    }
+  );
+  function handleDragOver() {
+    // droppingFile = true;
+  }
+  function handleDragLeave() {
+    // droppingFile = false;
+  }
+  function handleDrop(
+    event: DragEvent & {
+      dataTransfer: DataTransfer & {
+        files: FileList;
+      };
+    }
+  ) {}
+
+  listen('load_files', (event: { payload: string[] }) => {
+    loadFiles(event.payload);
   });
+  listen(
+    'tauri://focus',
+    (event: { payload: boolean; windowLabel: string }) => {
+      if (event.windowLabel == windowLabel) {
+        event.payload && invoke('window_focus', {});
+      }
+    }
+  );
   let fileInfo = writable({
     open: false,
     path: '',
     name: '',
   });
   setContext('fileInfo', fileInfo);
+  function loadFiles(paths: string[]) {
+    if (paths.length > 0 && !$fileInfo.open) {
+      loadFile(paths[0]);
+      paths = paths.slice(1);
+    }
+    if (paths.length > 0) {
+      invoke('new_window', {
+        creates: paths.map(function (path) {
+          return {
+            file_path: path,
+          };
+        }),
+      });
+    }
+  }
   async function loadFile(path: string) {
     let extension = path.split('.').pop();
     if (extension != 'docx') return;
@@ -97,8 +132,9 @@
       name: path.split('/').pop(),
     };
     // set title of window
+    console.log(appWindow);
     appWindow.setTitle($fileInfo.name);
-    doc.getLoader().teleport(0, true);
+    doc?.getLoader()?.teleport(0, true);
     outline?.getLoader()?.teleport(0, true);
     searchResults?.getLoader()?.teleport(0, true);
   }
@@ -192,7 +228,11 @@
 </script>
 
 <svelte:window on:resize={resizeHandler} />
-<main>
+<main
+  on:dragover|preventDefault={handleDragOver}
+  on:dragleave={handleDragLeave}
+  on:drop={handleDrop}
+>
   {#if droppingFile}
     <div class="screen" transition:fade={{ duration: 200 }}>
       <div class="message">drop file here</div>
