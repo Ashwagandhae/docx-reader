@@ -7,6 +7,9 @@ This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https:
 - Bold, underline, highlight, font size
 - Outline
 - Blazingly fast startup
+- Zoom
+- Search
+- Multi-window support
 
 # Unfeatures
 
@@ -14,10 +17,7 @@ This is desktop app built with [Tauri](https://tauri.studio) and [Svelte](https:
 
 - Ability to edit
 - Pages
-- Zoom
-- Search
 - Font, color, highlight color
-- Multi-window support
 
 # Download
 
